@@ -14,7 +14,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
 
     def generate_thoughts(self, state, k, max_length=100):
         state_text = ' '.join(state)
-        prompt = f"Write down your observations in format 'Observation:xxxx', then write down your thoughts in format 'Thoughts:xxxx Given the current state of reasoning: '{state_text}', generate {k} coherent solutions to achieve {state_text}"
+        prompt = f"Write down your observations in format 'Observation:xxxx', then write down your thoughts in format 'Thoughts:xxxx Given the current state of reasoning: '{state_text}'"
 
         if self.verbose:
             print(f"Generating thoughts for state: {state_text}")
@@ -23,7 +23,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
             print("Creating tokenizer for thought generation.")
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
             print("Creating outputs for thought generation.")
-            outputs = self.model.generate(**inputs, max_length=max_length, num_return_sequences=k)
+            outputs = self.model.generate(**inputs, max_length=max_length)
             print("Creating thoughts for thought generation.")
             thoughts = [self.tokenizer.decode(output, skip_special_tokens=True) for output in outputs]
         except Exception as e:
