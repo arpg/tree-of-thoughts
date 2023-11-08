@@ -72,59 +72,34 @@ class HuggingLanguageModel(AbstractLanguageModel):
         return solution
 
 
-    def evaluate_states(self, states, initial_prompt):
-        if not states:
-            return {}
+    def evaluate_states(self, states, initial_prompt, max_length=10):
+        state_values = {}
+        for state in states:
+            state_text = ' '.join(state)
+            prompt = f"Given the current state of reasoning: '{state_text}', pessimitically evaluate its value as a float between 0 and 1 based on it's potential to achieve {initial_prompt}"
 
-        if self.evaluation_strategy == 'value':
-            state_values = {}
-            for state in states:
-                if (type(state) == str):
-                    state_text = state
-                else:
-                    state_text = '\n'.join(state)
-                print("We receive a state of type", type(state), "For state: ", state, "\n\n")
-                # prompt = f"Given the current state of reasoning: '{state_text}', evaluate its value as a float between 0 and 1, become very pessimistic think of potential adverse risks on the probability of this state of reasoning achieveing {initial_prompt} and DO NOT RESPOND WITH ANYTHING ELSE: OTHER THAN AN FLOAT"
-                prompt = f""" To achieve the following goal: '{initial_prompt}', pessimistically value the context of the past solutions and more importantly the latest generated solution you had AS A FLOAT BETWEEN 0 AND 1\n
-                    Past solutions:\n\n
-                    {state_text}\n       
-                    If the solutions is not directly concretely making fast progress in achieving the goal, give it a lower score.
-                    Evaluate all solutions AS A FLOAT BETWEEN 0 and 1:\n,  DO NOT RETURN ANYTHING ELSE
-                """
-                # and then inside backticks provide an simple and direct bulletpoint list as to why you evaluated this thought the way you did. Provide simple yet intuitive feedback.
-                
-                response = self.openai_api_call_handler(prompt, 10, 1)
-                try:
-                    value_text = self.openai_choice2text_handler(response.choices[0])
-                    # print(f'state: {value_text}')
-                    value = float(value_text)
-                    print(f"Evaluated Thought Value: {value}")
-                except ValueError:
-                    value = 0  # Assign a default value if the conversion fails
-                state_values[state] = value
-            return state_values
+            if self.verbose:
+                print(f"Evaluating state: {state_text}")
 
-        elif self.evaluation_strategy == 'vote':
-            states_text = '\n'.join([' '.join(state) for state in states])
+            try:
+                inputs = self.tokenizer(prompt, return_tensors="pt")
+                outputs = self.model.generate(**inputs, num_return_sequences=1, max_length=max_length)
+                value_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+                value = float(value_text)
+                print(value)
+            except ValueError:
+                if self.verbose:
+                    print(f"Error converting value to float for state: {state_text}")
+                value = 0  # Assign a default value if the conversion fails
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error evaluating state: {state_text}")
+                    print(f"Error: {e}")
+                value = 0
 
-            prompt = f"Given the following states of reasoning, vote for the best state utilizing an scalar value 1-10:\n{states_text}\n\nVote, on the probability of this state of reasoning achieveing {initial_prompt} and become very pessimistic very NOTHING ELSE"
+            state_values[state] = value
 
-            response = self.openai_api_call_handler(prompt, 50, 1)
-
-            print(f'state response: {response}')
-
-            best_state_text = self.openai_choice2text_handler(response.choices[0])
-
-            print(f"Best state text: {best_state_text}")
-
-            best_state = tuple(best_state_text.split())
-
-            print(f'best_state: {best_state}')
-
-            return {state: 1 if state == best_state else 0 for state in states}
-
-        else:
-            raise ValueError("Invalid evaluation strategy. Choose 'value' or 'vote'.")
+        return state_values
 
 
 @staticmethod
