@@ -75,7 +75,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
-            outputs = self.model.generate(**inputs, max_length=100, num_return_sequences=1)
+            outputs = self.model.generate(**inputs, max_length=16000, num_return_sequences=1)
             solution = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         except Exception as e:
             if self.verbose:
