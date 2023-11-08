@@ -66,22 +66,26 @@ class HuggingLanguageModel(AbstractLanguageModel):
         return state_values
 
     def generate_solution(self, initial_prompt, state, rejected_solutions=None):
-        if isinstance(state, list):
-            state_text = ' '.join(state)
-        else:
-            state_text = state
-    
-        rejected_solutions_text = ' '.join(rejected_solutions) if rejected_solutions else "No rejected solutions."
-    
-        prompt = (f"You are an advanced AI tasked with generating solutions. "
-                  f"Given the current state: '{state_text}', "
-                  f"and considering the following rejected solutions: '{rejected_solutions_text}', "
-                  f"generate a solution for the task: {initial_prompt}. "
-                  f"Be concise and direct, providing intuitive solutions quickly.")
-    
-        if self.verbose:
-            print(f"Generating solution for state: {state_text}")
-    
+        try:
+            if isinstance(state, list):
+                state_text = ' '.join(state)
+            else:
+                state_text = state
+        
+            rejected_solutions_text = ' '.join(rejected_solutions) if rejected_solutions else "No rejected solutions."
+        
+            prompt = (f"You are an advanced AI tasked with generating solutions. "
+                      f"Given the current state: '{state_text}', "
+                      f"and considering the following rejected solutions: '{rejected_solutions_text}', "
+                      f"generate a solution for the task: {initial_prompt}. "
+                      f"Be concise and direct, providing intuitive solutions quickly.")
+        
+            if self.verbose:
+                print(f"Generating solution for state: {state_text}")
+        except Exception as e:
+            logger.error(f"Error in prompt creation: {e}")
+            return None
+            
         try:
             # Tokenize the input prompt and move it to the device (GPU if available)
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
