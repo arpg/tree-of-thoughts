@@ -8,7 +8,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
     def __init__(self, model_name, model_tokenizer=None, verbose=False):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        self.model = AutoModelForCausalLM.from_pretrained(model_name).to(self.device)
+        self.model = AutoModelForCausalLM.from_pretrained(model_name)
         self.tokenizer = AutoTokenizer.from_pretrained(model_tokenizer or model_name)
         self.verbose = verbose
 
