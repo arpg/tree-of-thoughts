@@ -1,5 +1,6 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers import pipeline
+import torch
 from tree_of_thoughts.models.abstract_language_model import AbstractLanguageModel
 
 
