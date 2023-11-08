@@ -28,7 +28,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
 
         return thoughts
 
-    def evaluate_states(self, states, initial_prompt, max_length=10):
+    def evaluate_states(self, states, initial_prompt, max_length=1000):
         state_values = {}
         for state in states:
             state_text = ' '.join(state)
