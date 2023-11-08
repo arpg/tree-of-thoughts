@@ -27,7 +27,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
             outputs = self.model.generate(**inputs, max_length=50, num_return_sequences=1)
             print("Created model...")
             # Decode the output to get the solution text
-            solution = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            thoughts = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             print("Decoded tokenizer...")
         except Exception as e:
             if self.verbose:
