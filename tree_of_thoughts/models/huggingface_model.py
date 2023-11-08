@@ -85,10 +85,13 @@ class HuggingLanguageModel(AbstractLanguageModel):
         try:
             # Tokenize the input prompt and move it to the device (GPU if available)
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+            print("Created tokenizer...")
             # Generate the outputs using the model and inputs on the same device
             outputs = self.model.generate(**inputs, max_length=16000, num_return_sequences=1)
+            print("Created model...")
             # Decode the output to get the solution text
             solution = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            print("Decoded tokenizer...")
         except Exception as e:
             if self.verbose:
                 print(f"Error generating solution for state: {state_text}")
