@@ -32,38 +32,38 @@ class HuggingLanguageModel(AbstractLanguageModel):
         return thoughts
 
     def evaluate_states(self, states, initial_prompt, max_length=1000):
-    state_values = {}
-    for state in states:
-        state_text = ' '.join(state)
-        prompt = f"Given the current state of reasoning: '{state_text}', pessimistically evaluate its value as a float between 0 and 1 based on its potential to achieve {initial_prompt}"
-
-        if self.verbose:
-            print(f"Evaluating state: {state_text}")
-
-        try:
-            # Generate inputs and move them to the device (GPU if available)
-            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-            # Generate the outputs using the model and inputs on the same device
-            outputs = self.model.generate(**inputs, num_return_sequences=1, max_length=max_length)
-            # Decode the output
-            value_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            # Convert the output to a float
-            value = float(value_text)
-        except ValueError:
+        state_values = {}
+        for state in states:
+            state_text = ' '.join(state)
+            prompt = f"Given the current state of reasoning: '{state_text}', pessimistically evaluate its value as a float between 0 and 1 based on its potential to achieve {initial_prompt}"
+    
             if self.verbose:
-                print(f"Error converting value to float for state: {state_text}")
-            value = 0  # Assign a default value if the conversion fails
-        except Exception as e:
-            if self.verbose:
-                print(f"Error evaluating state: {state_text}")
-                print(f"Error: {e}")
-            value = 0
-
-        # Store the value in the dictionary
-        state_values[state] = value
-
-    # Return the dictionary of state values
-    return state_values
+                print(f"Evaluating state: {state_text}")
+    
+            try:
+                # Generate inputs and move them to the device (GPU if available)
+                inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+                # Generate the outputs using the model and inputs on the same device
+                outputs = self.model.generate(**inputs, num_return_sequences=1, max_length=max_length)
+                # Decode the output
+                value_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+                # Convert the output to a float
+                value = float(value_text)
+            except ValueError:
+                if self.verbose:
+                    print(f"Error converting value to float for state: {state_text}")
+                value = 0  # Assign a default value if the conversion fails
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error evaluating state: {state_text}")
+                    print(f"Error: {e}")
+                value = 0
+    
+            # Store the value in the dictionary
+            state_values[state] = value
+    
+        # Return the dictionary of state values
+        return state_values
 
     def generate_solution(self, initial_prompt, state, rejected_solutions=None):
         if isinstance(state, list):
