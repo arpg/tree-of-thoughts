@@ -5,7 +5,9 @@ from tree_of_thoughts.models.abstract_language_model import AbstractLanguageMode
 
 class HuggingLanguageModel(AbstractLanguageModel):
     def __init__(self, model_name, model_tokenizer=None, verbose=False):
-        self.model = AutoModelForCausalLM.from_pretrained(model_name)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        self.model = AutoModelForCausalLM.from_pretrained(model_name).to(self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(model_tokenizer or model_name)
         self.verbose = verbose
 
@@ -17,7 +19,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
             print(f"Generating thoughts for state: {state_text}")
 
         try:
-            inputs = self.tokenizer(prompt, return_tensors="pt")
+            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
             outputs = self.model.generate(**inputs, max_length=max_length, num_return_sequences=k)
             thoughts = [self.tokenizer.decode(output, skip_special_tokens=True) for output in outputs]
         except Exception as e:
