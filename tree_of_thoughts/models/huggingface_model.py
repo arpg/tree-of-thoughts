@@ -70,28 +70,31 @@ class HuggingLanguageModel(AbstractLanguageModel):
             state_text = ' '.join(state)
         else:
             state_text = state
-
+    
         rejected_solutions_text = ' '.join(rejected_solutions) if rejected_solutions else "No rejected solutions."
-
+    
         prompt = (f"You are an advanced AI tasked with generating solutions. "
                   f"Given the current state: '{state_text}', "
                   f"and considering the following rejected solutions: '{rejected_solutions_text}', "
                   f"generate a solution for the task: {initial_prompt}. "
                   f"Be concise and direct, providing intuitive solutions quickly.")
-
+    
         if self.verbose:
             print(f"Generating solution for state: {state_text}")
-
+    
         try:
-            inputs = self.tokenizer(prompt, return_tensors="pt")
+            # Tokenize the input prompt and move it to the device (GPU if available)
+            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+            # Generate the outputs using the model and inputs on the same device
             outputs = self.model.generate(**inputs, max_length=16000, num_return_sequences=1)
+            # Decode the output to get the solution text
             solution = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         except Exception as e:
             if self.verbose:
                 print(f"Error generating solution for state: {state_text}")
                 print(f"Error: {e}")
             solution = ""
-
+    
         return solution
 
 
