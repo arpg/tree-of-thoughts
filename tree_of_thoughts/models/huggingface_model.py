@@ -20,8 +20,11 @@ class HuggingLanguageModel(AbstractLanguageModel):
             print(f"Generating thoughts for state: {state_text}")
 
         try:
+            print("Creating tokenizer for thought generation.")
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+            print("Creating outputs for thought generation.")
             outputs = self.model.generate(**inputs, max_length=max_length, num_return_sequences=k)
+            print("Creating thoughts for thought generation.")
             thoughts = [self.tokenizer.decode(output, skip_special_tokens=True) for output in outputs]
         except Exception as e:
             if self.verbose:
