@@ -21,7 +21,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
 
         try:
             print("Creating tokenizer for thought generation.")
-            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+            inputs = self.tokenizer(prompt, return_tensors="pt")
             print("Creating outputs for thought generation.")
             outputs = self.model.generate(**inputs, max_length=max_length, num_return_sequences=k)
             print("Creating thoughts for thought generation.")
