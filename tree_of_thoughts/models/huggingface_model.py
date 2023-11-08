@@ -9,7 +9,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         self.model = AutoModelForCausalLM.from_pretrained(model_name).to(self.device)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_tokenizer or model_name).to(self.device)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_tokenizer or model_name)
         self.verbose = verbose
 
     def generate_thoughts(self, state, k, max_length=100):
