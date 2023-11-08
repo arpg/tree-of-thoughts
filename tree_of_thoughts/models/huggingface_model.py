@@ -87,7 +87,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
             print("Created tokenizer...")
             # Generate the outputs using the model and inputs on the same device
-            outputs = self.model.generate(**inputs, max_length=16000, num_return_sequences=1)
+            outputs = self.model.generate(**inputs, max_length=50, num_return_sequences=1)
             print("Created model...")
             # Decode the output to get the solution text
             solution = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
