@@ -1,4 +1,5 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, logging
+from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 from transformers import pipeline
 import torch
 from tree_of_thoughts.models.abstract_language_model import AbstractLanguageModel
@@ -8,7 +9,8 @@ class HuggingLanguageModel(AbstractLanguageModel):
     def __init__(self, model_name, model_tokenizer=None, verbose=False):
         logging.set_verbosity(logging.CRITICAL)
         self.device = 0 if torch.cuda.is_available() else -1
-        self.generator = pipeline("text-generation", model=model_name, device=self.device)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+        self.generator = pipeline("text-generation", tokenizer=self.tokenizer, model=model_name, device=self.device)
         self.verbose = verbose
 
     def generate_thoughts(self, state, k, max_length=100):
