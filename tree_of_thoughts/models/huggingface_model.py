@@ -1,6 +1,5 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers import pipeline
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 import torch
 from tree_of_thoughts.models.abstract_language_model import AbstractLanguageModel
 
@@ -8,15 +7,8 @@ from tree_of_thoughts.models.abstract_language_model import AbstractLanguageMode
 class HuggingLanguageModel(AbstractLanguageModel):
     def __init__(self, model_name, model_tokenizer=None, verbose=False):
         self.device = 0 if torch.cuda.is_available() else -1
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, use_fast=True)
-        self.model = AutoGPTQForCausalLM.from_quantized(model_name_or_path,
-                                                model_basename=model_basename
-                                                use_safetensors=True,
-                                                trust_remote_code=True,
-                                                device="cuda:0",
-                                                use_triton=use_triton,
-                                                quantize_config=None)
-        # self.generator = pipeline("text-generation", model=model_name, device=self.device)
+        
+        self.generator = pipeline("text-generation", model=model_name, device=self.device)
         self.verbose = verbose
 
     def generate_thoughts(self, state, k, max_length=100):
@@ -29,9 +21,8 @@ class HuggingLanguageModel(AbstractLanguageModel):
         try:
             thoughts = []
             for i in range(k):
-                input_ids = self.tokenizer(prompt_template, return_tensors='pt').input_ids.cuda()
-                output = self.model.generate(inputs=input_ids, temperature=0.7, max_new_tokens=5000)
-                text = tokenizer.decode(output[0])
+                generated_code = self.generator(prompt, max_length=5000)
+                text = generated_code[0]['generated_text']
                 thoughts += [text]
         except Exception as e:
             if self.verbose:
@@ -64,9 +55,8 @@ class HuggingLanguageModel(AbstractLanguageModel):
             return None
             
         try:
-            input_ids = self.tokenizer(prompt_template, return_tensors='pt').input_ids.cuda()
-            output = self.model.generate(inputs=input_ids, temperature=0.7, max_new_tokens=5000)
-            solution = tokenizer.decode(output[0])
+            generated_code = self.generator(prompt, max_length=5000)
+            solution = generated_code[0]['generated_text']
         except Exception as e:
             if self.verbose:
                 print(f"Error generating solution for state: {state_text}")
@@ -86,9 +76,8 @@ class HuggingLanguageModel(AbstractLanguageModel):
                 print(f"Evaluating state: {state_text}")
 
             try:
-                input_ids = self.tokenizer(prompt_template, return_tensors='pt').input_ids.cuda()
-                output = self.model.generate(inputs=input_ids, temperature=0.7, max_new_tokens=5000)
-                value_text = tokenizer.decode(output[0])
+                generated_code = self.generator(prompt, max_length=5000)
+                value_text = generated_code[0]['generated_text']
                 value = float(value_text)
                 print(value)
             except ValueError:
