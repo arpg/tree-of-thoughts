@@ -20,6 +20,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
 
         try:
             generated_code = self.generator(prompt, max_length=5000)
+            thoughts = generated_code['generated_text']
         except Exception as e:
             if self.verbose:
                 print(f"Error generating thoughts for state: {state_text}")
