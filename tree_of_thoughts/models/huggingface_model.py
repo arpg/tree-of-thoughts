@@ -8,7 +8,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
     def __init__(self, model_name, model_tokenizer=None, verbose=False):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        generator = pipeline("text-generation", model=model_name)
+        self.generator = pipeline("text-generation", model=model_name)
         self.verbose = verbose
 
     def generate_thoughts(self, state, k, max_length=100):
@@ -19,7 +19,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
             print(f"Generating thoughts for state: {state_text}")
 
         try:
-            generated_code = generator(prompt, max_length=5000)
+            generated_code = self.generator(prompt, max_length=5000)
         except Exception as e:
             if self.verbose:
                 print(f"Error generating thoughts for state: {state_text}")
@@ -51,15 +51,8 @@ class HuggingLanguageModel(AbstractLanguageModel):
             return None
             
         try:
-            # Tokenize the input prompt and move it to the device (GPU if available)
-            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-            print("Created tokenizer...")
-            # Generate the outputs using the model and inputs on the same device
-            outputs = self.model.generate(**inputs, max_length=50, num_return_sequences=1)
-            print("Created model...")
-            # Decode the output to get the solution text
-            solution = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            print("Decoded tokenizer...")
+            generated_code = self.generator(prompt, max_length=5000)
+            solution = generated_code[0]['generated_text']
         except Exception as e:
             if self.verbose:
                 print(f"Error generating solution for state: {state_text}")
@@ -79,9 +72,8 @@ class HuggingLanguageModel(AbstractLanguageModel):
                 print(f"Evaluating state: {state_text}")
 
             try:
-                inputs = self.tokenizer(prompt, return_tensors="pt")
-                outputs = self.model.generate(**inputs, num_return_sequences=1, max_length=max_length)
-                value_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+                generated_code = self.generator(prompt, max_length=5000)
+                value_text = generated_code[0]['generated_text']
                 value = float(value_text)
                 print(value)
             except ValueError:
