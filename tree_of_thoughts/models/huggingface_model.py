@@ -8,7 +8,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
     def __init__(self, model_name, model_tokenizer=None, verbose=False):
         logging.set_verbosity(logging.CRITICAL)
         self.device = 0 if torch.cuda.is_available() else -1
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.generator = pipeline("text-generation", tokenizer=self.tokenizer, model=model_name, device=self.device)
         self.verbose = verbose
     
