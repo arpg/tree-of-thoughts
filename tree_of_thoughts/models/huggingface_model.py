@@ -1,5 +1,4 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer, logging
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 from transformers import pipeline
 import torch
 from tree_of_thoughts.models.abstract_language_model import AbstractLanguageModel
@@ -12,7 +11,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
         self.generator = pipeline("text-generation", tokenizer=self.tokenizer, model=model_name, device=self.device)
         self.verbose = verbose
-
+    
     def generate_thoughts(self, state, k, max_length=100):
         state_text = ' '.join(state)
         prompt = f"Write down your observations in format 'Observation:xxxx', then write down your thoughts in format 'Thoughts:xxxx Given the current state of reasoning: '{state_text}', generate a coherent solutions to achieve {state_text}"
