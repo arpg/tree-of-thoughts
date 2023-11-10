@@ -13,14 +13,17 @@ class HuggingLanguageModel(AbstractLanguageModel):
 
     def generate_thoughts(self, state, k, max_length=100):
         state_text = ' '.join(state)
-        prompt = f"Write down your observations in format 'Observation:xxxx', then write down your thoughts in format 'Thoughts:xxxx Given the current state of reasoning: '{state_text}', generate {k} coherent solutions to achieve {state_text}"
+        prompt = f"Write down your observations in format 'Observation:xxxx', then write down your thoughts in format 'Thoughts:xxxx Given the current state of reasoning: '{state_text}', generate a coherent solutions to achieve {state_text}"
 
         if self.verbose:
             print(f"Generating thoughts for state: {state_text}")
 
         try:
-            generated_code = self.generator(prompt, max_length=5000)
-            thoughts = generated_code['generated_text']
+            thoughts = []
+            for i in range(k):
+                generated_code = self.generator(prompt, max_length=5000)
+                text = generated_code[0]['generated_text']
+                thoughts += [text]
         except Exception as e:
             if self.verbose:
                 print(f"Error generating thoughts for state: {state_text}")
