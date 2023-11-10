@@ -8,8 +8,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
     def __init__(self, model_name, model_tokenizer=None, verbose=False):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        self.model = AutoModelForCausalLM.from_pretrained(model_name).to(self.device)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_tokenizer or model_name)
+        generator = pipeline("text-generation", model=model_name)
         self.verbose = verbose
 
     def generate_thoughts(self, state, k, max_length=100):
@@ -20,9 +19,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
             print(f"Generating thoughts for state: {state_text}")
 
         try:
-            inputs = self.tokenizer(prompt, return_tensors="pt")
-            outputs = self.model.generate(**inputs, max_length=max_length, num_return_sequences=k)
-            thoughts = [self.tokenizer.decode(output, skip_special_tokens=True) for output in outputs]
+            generated_code = generator(prompt, max_length=5000)
         except Exception as e:
             if self.verbose:
                 print(f"Error generating thoughts for state: {state_text}")
