@@ -24,6 +24,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
                 input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
                 output = self.model.generate(input_ids, max_length=5000)
                 decoded_output = self.tokenizer.decode(output[0], skip_special_tokens=True)
+                time.sleep(0.5)
                 thoughts += [decoded_output]
         except Exception as e:
             if self.verbose:
@@ -59,6 +60,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
             input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
             output = self.model.generate(input_ids, max_length=5000)
             decoded_output = self.tokenizer.decode(output[0], skip_special_tokens=True)
+            time.sleep(0.5)
             solution = decoded_output
         except Exception as e:
             if self.verbose:
@@ -82,6 +84,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
                 input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
                 output = self.model.generate(input_ids, max_length=5000)
                 decoded_output = self.tokenizer.decode(output[0], skip_special_tokens=True)
+                time.sleep(0.5)
                 value = float(decoded_output)
                 print(value)
             except ValueError:
