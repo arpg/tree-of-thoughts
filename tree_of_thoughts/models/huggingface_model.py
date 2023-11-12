@@ -21,7 +21,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
         try:
             thoughts = []
             for i in range(k):
-                input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(device)
+                input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
                 output = self.model.generate(input_ids, max_length=5000)
                 decoded_output = self.tokenizer.decode(output[0], skip_special_tokens=True)
                 thoughts += [decoded_output]
@@ -56,7 +56,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
             return None
             
         try:
-            input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(device)
+            input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
             output = self.model.generate(input_ids, max_length=5000)
             decoded_output = self.tokenizer.decode(output[0], skip_special_tokens=True)
             solution = decoded_output
@@ -79,7 +79,7 @@ class HuggingLanguageModel(AbstractLanguageModel):
                 print(f"Evaluating state: {state_text}")
 
             try:
-                input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(device)
+                input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
                 output = self.model.generate(input_ids, max_length=5000)
                 decoded_output = self.tokenizer.decode(output[0], skip_special_tokens=True)
                 value = float(decoded_output)
