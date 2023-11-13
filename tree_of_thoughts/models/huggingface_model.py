@@ -70,38 +70,38 @@ class HuggingLanguageModel(AbstractLanguageModel):
 
 
     def evaluate_states(self, states, initial_prompt, max_length=10):
-    state_values = {}
-    for state in states:
-        state_text = ' '.join(state)
-        prompt = f"Given the current state of reasoning: '{state_text}', pessimistically evaluate its value as a float between 0 and 1 based on its potential to achieve {initial_prompt}"
-
-        if self.verbose:
-            print(f"Evaluating state: {state_text}")
-
-        value_obtained = False
-        while not value_obtained:
-            try:
-                input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
-                output = self.model.generate(input_ids, max_length=5000)
-                decoded_output = self.tokenizer.decode(output[0], skip_special_tokens=True)
-                value = float(decoded_output)
-                if self.verbose:
-                    print(f"Value obtained: {value}")
-                value_obtained = True
-            except ValueError:
-                if self.verbose:
-                    print(f"Error converting value to float for state: {state_text}. Retrying...")
-                # The loop will continue until a valid float is obtained
-            except Exception as e:
-                if self.verbose:
-                    print(f"Error evaluating state: {state_text}")
-                    print(f"Error: {e}")
-                value = 0  # Assign a default value if there's an exception other than ValueError
-                break  # Exit the loop in case of non-ValueError exceptions
-
-        state_values[state] = value
-
-    return state_values
+        state_values = {}
+        for state in states:
+            state_text = ' '.join(state)
+            prompt = f"Given the current state of reasoning: '{state_text}', pessimistically evaluate its value as a float between 0 and 1 based on its potential to achieve {initial_prompt}"
+    
+            if self.verbose:
+                print(f"Evaluating state: {state_text}")
+    
+            value_obtained = False
+            while not value_obtained:
+                try:
+                    input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
+                    output = self.model.generate(input_ids, max_length=5000)
+                    decoded_output = self.tokenizer.decode(output[0], skip_special_tokens=True)
+                    value = float(decoded_output)
+                    if self.verbose:
+                        print(f"Value obtained: {value}")
+                    value_obtained = True
+                except ValueError:
+                    if self.verbose:
+                        print(f"Error converting value to float for state: {state_text}. Retrying...")
+                    # The loop will continue until a valid float is obtained
+                except Exception as e:
+                    if self.verbose:
+                        print(f"Error evaluating state: {state_text}")
+                        print(f"Error: {e}")
+                    value = 0  # Assign a default value if there's an exception other than ValueError
+                    break  # Exit the loop in case of non-ValueError exceptions
+    
+            state_values[state] = value
+    
+        return state_values
 
 @staticmethod
 class HFPipelineModel(AbstractLanguageModel):
