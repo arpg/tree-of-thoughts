@@ -317,7 +317,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
               pruning_threshold: float,
             #   sleep_time: float,
               ):
-        self.file_name = "logs/tree_of_thoughts_output_montecarlo.json"
+        self.file_name = "logs/" + "ip_" + str(initial_prompt) + "_nt_" + str(num_thoughts) + "_mstep_" + str(max_steps) + "_mstate_" + str(max_states) + "_pt_" + str(pruning_threshold) + "_tree_of_thoughts_output_montecarlo" + ".json"
         return self.monte_carlo_search(
             initial_prompt,
             num_thoughts,
