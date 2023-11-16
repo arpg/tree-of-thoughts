@@ -309,6 +309,12 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
         
         return num_thoughts, max_steps, max_states
 
+    def extract_query(s):
+        query_index = s.find("Query:")
+        if query_index == -1:
+            return ""  # "Query:" not found in the string
+        return s[query_index + len("Query:"):].strip()
+    
     def solve(self,
               initial_prompt: str,
               num_thoughts: int,
@@ -317,7 +323,9 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
               pruning_threshold: float,
             #   sleep_time: float,
               ):
-        self.file_name = "logs/" + "ip_" + str(initial_prompt) + "_nt_" + str(num_thoughts) + "_mstep_" + str(max_steps) + "_mstate_" + str(max_states) + "_pt_" + str(pruning_threshold) + "_tree_of_thoughts_output_montecarlo" + ".json"
+                  
+        query_text = extract_query(initial_prompt)
+        self.file_name = "logs/" + "ip_" + str(query_text) + "_nt_" + str(num_thoughts) + "_mstep_" + str(max_steps) + "_mstate_" + str(max_states) + "_pt_" + str(pruning_threshold) + "_tree_of_thoughts_output_montecarlo" + ".json"
         return self.monte_carlo_search(
             initial_prompt,
             num_thoughts,
