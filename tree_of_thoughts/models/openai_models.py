@@ -10,7 +10,7 @@ class OpenAILanguageModel(AbstractLanguageModel):
         logger.basicConfig(level=logging.INFO if verbose else logging.ERROR,
                             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                             handlers=[
-                                logging.FileHandler(f"logs/{model_name}_log.txt"),
+                                logging.FileHandler(f"logs/test_log.txt"),
                                 logging.StreamHandler()
                             ])
         if api_key == "" or api_key is None:
