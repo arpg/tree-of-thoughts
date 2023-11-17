@@ -4,12 +4,6 @@ import time
 from  tree_of_thoughts.models.abstract_language_model import AbstractLanguageModel
 import concurrent.futures
 import logging 
-import os
-import openai
-import time
-import concurrent.futures
-import logging
-from tree_of_thoughts.models.abstract_language_model import AbstractLanguageModel
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
