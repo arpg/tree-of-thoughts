@@ -5,11 +5,14 @@ from  tree_of_thoughts.models.abstract_language_model import AbstractLanguageMod
 import concurrent.futures
 import logging 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
 class OpenAILanguageModel(AbstractLanguageModel):
     def __init__(self, api_key, strategy="cot", evaluation_strategy="value", api_base="", api_model="", enable_ReAct_prompting=True):
+        logging.basicConfig(level=logging.INFO if verbose else logging.ERROR,
+                            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                            handlers=[
+                                logging.FileHandler(f"logs/{model_name}_log.txt"),
+                                logging.StreamHandler()
+                            ])
         if api_key == "" or api_key is None:
             api_key = os.environ.get("OPENAI_API_KEY", "")
         if api_key != "":
