@@ -309,12 +309,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
         
         return num_thoughts, max_steps, max_states
     
-    def solve(self,
-              initial_prompt: str,
-              num_thoughts: int,
-              max_steps: int,
-              max_states: int,
-              pruning_threshold: float,
+    def solve(self, initial_prompt: str, num_thoughts: int, max_steps: int, max_states: int, pruning_threshold: float,
             #   sleep_time: float,
               ):
 
