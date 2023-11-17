@@ -7,7 +7,7 @@ import logging
 
 class OpenAILanguageModel(AbstractLanguageModel):
     def __init__(self, api_key, strategy="cot", evaluation_strategy="value", api_base="", api_model="", enable_ReAct_prompting=True):
-        logger.basicConfig(level=logging.INFO if verbose else logging.ERROR,
+        logging.basicConfig(level=logging.INFO if verbose else logging.ERROR,
                             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                             handlers=[
                                 logging.FileHandler(f"logs/test_log.txt"),
