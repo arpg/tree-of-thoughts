@@ -334,7 +334,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
             return s[query_index + len("Query:"):].strip()
                   
         query_text = extract_query(initial_prompt)
-        self.file_name = "logs/" + "ip_" + str(query_text) + "_nt_" + str(num_thoughts) + "_mstep_" + str(max_steps) + "_mstate_" + str(max_states) + "_pt_" + str(pruning_threshold) + "_tree_of_thoughts_output_montecarlo" + ".json"
+        self.file_name = "logs/" + "ip_" + str(query_text) + "_nt_" + str(num_thoughts) + "_mstep_" + str(max_steps) + "_mstate_" + str(max_states) + "_pt_" + str(pruning_threshold) + "_tree_of_thoughts_output_montecarlo" + ".txt"
         return self.monte_carlo_search(
             initial_prompt,
             num_thoughts,
