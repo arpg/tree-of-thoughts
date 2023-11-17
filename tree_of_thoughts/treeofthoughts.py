@@ -414,7 +414,11 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
         self.logger.removeHandler(handler)
         handler.close()
 
-        return result
+        # Read the contents of the log file
+        with open(self.file_name, 'r') as file:
+            logs = file.read()
+
+        return result, logs
 
 # #does not output state after each thought --- idk why -- needs work
 # class OptimizedTreeofThoughts(TreeofThoughts):
