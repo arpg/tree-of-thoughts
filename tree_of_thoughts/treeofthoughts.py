@@ -383,7 +383,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
 
             if len(selected_states) > max_states:
                 current_states = selected_states[:max_states]
-            self.save_tree_to_json(self.file_name)
+            #self.save_tree_to_json(self.file_name)
 
         # if best_state is not None:
         #     solution = self.model.generate_solution(initial_prompt, best_state)
