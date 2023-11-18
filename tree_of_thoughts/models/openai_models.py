@@ -163,11 +163,14 @@ class OpenAILanguageModel(AbstractLanguageModel):
                     state_text = '\n'.join(state)
                 print("We receive a state of type", type(state), "For state: ", state, "\n\n")
                 # prompt = f"Given the current state of reasoning: '{state_text}', evaluate its value as a float between 0 and 1, become very pessimistic think of potential adverse risks on the probability of this state of reasoning achieveing {initial_prompt} and DO NOT RESPOND WITH ANYTHING ELSE: OTHER THAN AN FLOAT"
-                prompt = f""" To achieve the following goal: '{initial_prompt}', value the context of the past solutions and more importantly the latest generated solution you had AS A FLOAT BETWEEN 0 AND 1\n
-                    Past solutions:\n\n
-                    {state_text}\n
-                    Evaluate all solutions AS A FLOAT BETWEEN 0 and 1:\n,  DO NOT RETURN ANYTHING ELSE
-                """
+                prompt = (
+                    f"To achieve the goal: '{initial_prompt}', consider the context of previous solutions "
+                    f"and, more critically, the most recently generated solution. Assign a value to each solution "
+                    "as a float ranging between 0 and 1.\n\n"
+                    "Previous solutions:\n\n"
+                    f"{state_text}\n"
+                    "Evaluate all solutions, assigning each a float value between 0 and 1. Do not return any other information."
+                )
                 # and then inside backticks provide an simple and direct bulletpoint list as to why you evaluated this thought the way you did. Provide simple yet intuitive feedback.
                 
                 response = self.openai_api_call_handler(prompt, 10, 1)
