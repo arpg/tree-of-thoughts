@@ -338,7 +338,6 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
         state_values = {}
         visit_counts = {initial_prompt: 0}
         transposition_table = {}
-        logger = logging.getLogger(__name__)
 
         best_state = None
         best_value = float('-inf')
@@ -354,8 +353,6 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
                     thoughts = self.model.generate_thoughts(state, num_thoughts, initial_prompt)
                     time.sleep(1)
                     evaluated_thoughts = self.model.evaluate_states(thoughts, initial_prompt)
-                    logger.info("Evaluated Thoughts:")
-                    logger.info(evaluated_thoughts)
 
                     for thought, value in evaluated_thoughts.items():
                         flattened_state = (state, thought) if isinstance(state, str) else (*state, thought)
@@ -376,8 +373,6 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
 
                             # Update the best state if the current state value is greater than the best value
                             if value > best_value:
-                                logger.info("New Best Value:")
-                                logger.info(best_value)
                                 best_state = flattened_state
                                 best_value = value
 
@@ -395,9 +390,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
 
         # return None
         solution = self.model.generate_solution(initial_prompt, best_state)
-        logger.info("Solution Generated:")
-        logger.info(solution)
-        return solution if solution else best_state
+        return solution if solution else best_state, logger
 
 # #does not output state after each thought --- idk why -- needs work
 # class OptimizedTreeofThoughts(TreeofThoughts):
