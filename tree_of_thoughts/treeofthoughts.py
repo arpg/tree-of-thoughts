@@ -394,6 +394,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
 
         # return None
         solution = self.model.generate_solution(initial_prompt, best_state)
+        print(best_state)
         return solution if solution else best_state
 
 # #does not output state after each thought --- idk why -- needs work
