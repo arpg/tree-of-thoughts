@@ -366,7 +366,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
                     if flattened_state not in visit_counts:
                         visit_counts[flattened_state] = 0
 
-                    if visit_counts[state] > visit_counts[flattened_state] and visit_counts[flattened_state] > 0:
+                    if visit_counts[state] < visit_counts[flattened_state]:
                         ucb1_value = value + np.sqrt(2 * np.log(visit_counts[state]) / visit_counts[flattened_state])
 
                         if ucb1_value >= pruning_threshold:
