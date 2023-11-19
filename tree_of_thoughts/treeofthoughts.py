@@ -373,6 +373,8 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
                     for thought, value in evaluated_thoughts.items():
                         flattened_state = (state, thought) if isinstance(state, str) else (*state, thought)
                         transposition_table[flattened_state] = value
+                        print("TRANS TABLE")
+                        print(transposition_table)
                         self.logger.info(f"Evaluated State: {flattened_state}, Value: {value}")
 
                 # Select states based on UCB1 algorithm and pruning threshold
@@ -384,7 +386,8 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
 
                     if visit_counts[state] > visit_counts[flattened_state] and visit_counts[flattened_state] > 0:
                         ucb1_value = value + np.sqrt(2 * np.log(visit_counts[state]) / visit_counts[flattened_state])
-
+                        print("UCB Value!")
+                        print(ucb1_value)
                         if ucb1_value >= pruning_threshold:
                             selected_states.append(flattened_state)
                             state_values[flattened_state] = value
