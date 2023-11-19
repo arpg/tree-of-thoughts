@@ -262,7 +262,7 @@ class TreeofThoughtsASearch:
                     f_scores[thought] = tentative_g_score + value
                     open_set.put((-f_scores[thought], g_scores[thought], thought))
 
-        return self.reconstruct_path(came_from, current_state, initial_prompt)
+        return self.reconstruct_path(came_from, current_state, initial_prompt), logger
 
     
     def is_goal(self, state, score):
