@@ -360,6 +360,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
 
                 for thought, value in evaluated_thoughts.items():
                     flattened_state = (state, thought) if isinstance(state, str) else (*state, thought)
+                    print("New flat state")
 
                     if flattened_state not in visit_counts:
                         visit_counts[flattened_state] = 0
@@ -368,6 +369,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
                         ucb1_value = value + np.sqrt(2 * np.log(visit_counts[state]) / visit_counts[flattened_state])
 
                         if ucb1_value >= pruning_threshold:
+                            print("New ucb1 value")
                             selected_states.append(flattened_state)
                             state_values[flattened_state] = value
 
