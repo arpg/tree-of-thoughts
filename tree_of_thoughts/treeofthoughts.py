@@ -282,20 +282,6 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
         super().__init__(model)
         self.objective = objective
         self.solution_found = False
-        self.tree = {
-            "nodes": {},
-            "metrics": {"thoughts": {}, "evaluations": {}},
-        }
-
-        # Initialize logging
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-
-        # Create logs directory if not exists
-        if not os.path.exists('logs'):
-            os.makedirs('logs')
-        self.objective = objective
-        self.solution_found = False
         self.tree: Dict[str, Dict[str, Union[float, Dict[str, Any]]]] = {
             "nodes": {},
             "metrics": {"thoughts": {}, "evaluations": {}},
@@ -322,19 +308,16 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
                 max_states += 1
         
         return num_thoughts, max_steps, max_states
-    
-    def solve(self, initial_prompt: str, num_thoughts: int, max_steps: int, max_states: int, pruning_threshold: float,
+
+    def solve(self,
+              initial_prompt: str,
+              num_thoughts: int,
+              max_steps: int,
+              max_states: int,
+              pruning_threshold: float,
             #   sleep_time: float,
               ):
-
-        def extract_query(s):
-            query_index = s.find("Query:")
-            if query_index == -1:
-                return ""  # "Query:" not found in the string
-            return s[query_index + len("Query:"):].strip()
-                  
-        query_text = extract_query(initial_prompt)
-        self.file_name = "logs/" + "ip_" + str(query_text) + "_nt_" + str(num_thoughts) + "_mstep_" + str(max_steps) + "_mstate_" + str(max_states) + "_pt_" + str(pruning_threshold) + "_tree_of_thoughts_output_montecarlo" + ".txt"
+        self.file_name = "logs/tree_of_thoughts_output_montecarlo.json"
         return self.monte_carlo_search(
             initial_prompt,
             num_thoughts,
@@ -344,12 +327,13 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
             # sleep_time,
         )
 #v3
-    def monte_carlo_search(self, initial_prompt: str, num_thoughts: int, max_steps: int, max_states: int, pruning_threshold: float):
-        # Initialize and set up the log file for this search
-        handler = logging.FileHandler(self.file_name, mode='w')
-        self.logger.addHandler(handler)
-
-        # Initialize search parameters
+    def monte_carlo_search(self,
+                        initial_prompt: str,
+                        num_thoughts: int,
+                        max_steps: int,
+                        max_states: int,
+                        pruning_threshold: float,
+                        ):
         current_states = [initial_prompt]
         state_values = {}
         visit_counts = {initial_prompt: 0}
@@ -362,23 +346,18 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
             selected_states = []
 
             for state in current_states:
-                if state not in transposition_table:
-                    # Generate and evaluate thoughts for the current state
-                    time.sleep(1)  # simulate processing delay
+                if state in transposition_table:
+                    transposition_table[state]
+                else:
+                    time.sleep(1)
                     thoughts = self.model.generate_thoughts(state, num_thoughts, initial_prompt)
-                    time.sleep(1)  # simulate processing delay
+                    time.sleep(1)
                     evaluated_thoughts = self.model.evaluate_states(thoughts, initial_prompt)
-                    print("Thought items.")
-                    print(evaluated_thoughts.items())
-                    # Store evaluated thoughts in the transposition table
+
                     for thought, value in evaluated_thoughts.items():
                         flattened_state = (state, thought) if isinstance(state, str) else (*state, thought)
                         transposition_table[flattened_state] = value
-                        print("TRANS TABLE")
-                        print(transposition_table)
-                        self.logger.info(f"Evaluated State: {flattened_state}, Value: {value}")
 
-                # Select states based on UCB1 algorithm and pruning threshold
                 for thought, value in evaluated_thoughts.items():
                     flattened_state = (state, thought) if isinstance(state, str) else (*state, thought)
 
@@ -387,42 +366,31 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
 
                     if visit_counts[state] > visit_counts[flattened_state] and visit_counts[flattened_state] > 0:
                         ucb1_value = value + np.sqrt(2 * np.log(visit_counts[state]) / visit_counts[flattened_state])
-                        print("UCB Value!")
-                        print(ucb1_value)
+
                         if ucb1_value >= pruning_threshold:
                             selected_states.append(flattened_state)
                             state_values[flattened_state] = value
 
-                            # Update the best state and value
+                            # Update the best state if the current state value is greater than the best value
                             if value > best_value:
                                 best_state = flattened_state
                                 best_value = value
 
                 visit_counts[state] += 1
 
-            # Prune states if necessary
             if len(selected_states) > max_states:
                 current_states = selected_states[:max_states]
+            self.save_tree_to_json(self.file_name)
 
-            # Log the progress at each step
-            self.logger.info(f"Step {step}: Best state so far: {best_state}, Value: {best_value}")
+        # if best_state is not None:
+        #     solution = self.model.generate_solution(initial_prompt, best_state)
+        #     return solution
+        # else:
+        #     solution = None
 
-        # Generate the final solution
+        # return None
         solution = self.model.generate_solution(initial_prompt, best_state)
-        result = solution if solution else best_state
-
-        # Log the final result
-        self.logger.info(f"Final result: {result}")
-
-        # Remove and close the log file handler
-        self.logger.removeHandler(handler)
-        handler.close()
-
-        # Read the contents of the log file
-        with open(self.file_name, 'r') as file:
-            logs = file.read()
-
-        return result, logs
+        return solution if solution else best_state
 
 # #does not output state after each thought --- idk why -- needs work
 # class OptimizedTreeofThoughts(TreeofThoughts):
