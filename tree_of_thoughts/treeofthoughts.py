@@ -353,6 +353,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
                     thoughts = self.model.generate_thoughts(state, num_thoughts, initial_prompt)
                     time.sleep(1)
                     evaluated_thoughts = self.model.evaluate_states(thoughts, initial_prompt)
+                    print("New evaluated thoughts...")
 
                     for thought, value in evaluated_thoughts.items():
                         flattened_state = (state, thought) if isinstance(state, str) else (*state, thought)
