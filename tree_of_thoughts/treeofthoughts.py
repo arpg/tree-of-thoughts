@@ -368,7 +368,8 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
                     thoughts = self.model.generate_thoughts(state, num_thoughts, initial_prompt)
                     time.sleep(1)  # simulate processing delay
                     evaluated_thoughts = self.model.evaluate_states(thoughts, initial_prompt)
-
+                    print("Thought items.")
+                    print(evaluated_thoughts.items())
                     # Store evaluated thoughts in the transposition table
                     for thought, value in evaluated_thoughts.items():
                         flattened_state = (state, thought) if isinstance(state, str) else (*state, thought)
