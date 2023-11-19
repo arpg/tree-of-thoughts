@@ -270,8 +270,8 @@ class TreeofThoughtsASearch:
             current_state = came_from[current_state]
             path.append(current_state)
         path.reverse()
-
-        path = self.reconstruct_path(came_from, current_state, initial_prompt)
+    
+        # The recursive call to self.reconstruct_path has been removed
         solution = self.model.generate_solution(initial_prompt, path)
         print(f"Path: {path} solution: {solution}")
         return solution if solution else path
