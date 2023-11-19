@@ -374,6 +374,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
                             # Update the best state if the current state value is greater than the best value
                             if value > best_value:
                                 best_state = flattened_state
+                                print("New best value")
                                 best_value = value
 
                 visit_counts[state] += 1
@@ -390,7 +391,7 @@ class MonteCarloTreeofThoughts(TreeofThoughts):
 
         # return None
         solution = self.model.generate_solution(initial_prompt, best_state)
-        return solution if solution else best_state, logger
+        return solution if solution else best_state
 
 # #does not output state after each thought --- idk why -- needs work
 # class OptimizedTreeofThoughts(TreeofThoughts):
