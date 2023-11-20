@@ -217,13 +217,16 @@ class TreeofThoughtsBEST:
 class TreeofThoughtsASearch:
     def __init__(self, model):
         self.model = model
+        self.logger = logging.getLogger(__name__)
+        self.log_stream = io.StringIO()
+        stream_handler = logging.StreamHandler(self.log_stream)
+        self.logger.addHandler(stream_handler)
+        self.logger.setLevel(logging.INFO)
 
     def solve(self, initial_prompt, num_thoughts=5, max_steps=30, pruning_threshold=0.4):
         #the open set is implemented as a piorituve quue where the priority is -f_score
-        log_stream = io.StringIO()
-        stream_handler = logging.StreamHandler(log_stream)
-        logger.info("Using initial_prompt:")
-        logger.info(initial_prompt)
+        self.logger.info("Using initial_prompt:")
+        self.logger.info(initial_prompt)
         open_set = PriorityQueue()
         open_set.put((0, 0, initial_prompt))
 
@@ -250,8 +253,8 @@ class TreeofThoughtsASearch:
 
             thoughts = self.model.generate_thoughts(current_state, num_thoughts, initial_prompt)
             evaluated_thoughts = {thought: self.model.evaluate_states({thought: 0}, initial_prompt)[thought] for thought in thoughts}
-            logger.info("Evaluated thoughts:")
-            logger.info(evaluated_thoughts)
+            self.logger.info("Evaluated thoughts:")
+            self.logger.info(evaluated_thoughts)
 
             for thought, value in evaluated_thoughts.items():
                 if value < pruning_threshold or thought in visited_states:
@@ -280,8 +283,8 @@ class TreeofThoughtsASearch:
     
         # The recursive call to self.reconstruct_path has been removed
         solution = self.model.generate_solution(initial_prompt, path)
-        logger.info("Solution generated:")
-        logger.info(solution)
+        self.logger.info("Solution generated:")
+        self.logger.info(solution)
         print(f"Path: {path} solution: {solution}")
         return solution if solution else path
 
