@@ -219,7 +219,8 @@ class TreeofThoughtsASearch:
 
     def solve(self, initial_prompt, num_thoughts=5, max_steps=30, pruning_threshold=0.4):
         #the open set is implemented as a piorituve quue where the priority is -f_score
-        logger.log("Using initial_prompt:", initial_prompt)
+        logger.info("Using initial_prompt:")
+        logger.info(initial_prompt)
         open_set = PriorityQueue()
         open_set.put((0, 0, initial_prompt))
 
@@ -246,7 +247,8 @@ class TreeofThoughtsASearch:
 
             thoughts = self.model.generate_thoughts(current_state, num_thoughts, initial_prompt)
             evaluated_thoughts = {thought: self.model.evaluate_states({thought: 0}, initial_prompt)[thought] for thought in thoughts}
-            logger.log("Evaluated thoughts:", evaluated_thoughts)
+            logger.info("Evaluated thoughts:")
+            logger.info(evaluated_thoughts)
 
             for thought, value in evaluated_thoughts.items():
                 if value < pruning_threshold or thought in visited_states:
@@ -275,7 +277,8 @@ class TreeofThoughtsASearch:
     
         # The recursive call to self.reconstruct_path has been removed
         solution = self.model.generate_solution(initial_prompt, path)
-        logger.log("Solution generated:", solution)
+        logger.info("Solution generated:")
+        logger.info(solution)
         print(f"Path: {path} solution: {solution}")
         return solution if solution else path
 
