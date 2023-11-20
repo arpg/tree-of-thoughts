@@ -218,10 +218,10 @@ class TreeofThoughtsASearch:
     def __init__(self, model):
         self.model = model
         
-        log_stream = io.StringIO()
+        self.log_stream = io.StringIO()
         
         # Create a StreamHandler that writes to the StringIO object
-        stream_handler = logging.StreamHandler(log_stream)
+        self.stream_handler = logging.StreamHandler(self.log_stream)
 
     def solve(self, initial_prompt, num_thoughts=5, max_steps=30, pruning_threshold=0.4):
         #the open set is implemented as a piorituve quue where the priority is -f_score
@@ -287,7 +287,7 @@ class TreeofThoughtsASearch:
         logger.info("Solution generated:")
         logger.info(solution)
         print(f"Path: {path} solution: {solution}")
-        self.log_contents = log_stream.getvalue()
+        self.log_contents = self.log_stream.getvalue()
         return solution if solution else path
 
 
