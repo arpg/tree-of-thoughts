@@ -248,7 +248,7 @@ class TreeofThoughtsASearch:
 
             _, _, current_state = open_set.get()
 
-            if self.is_goal(current_state, f_scores[current_state]):=
+            if self.is_goal(current_state, f_scores[current_state]):
                 return self.reconstruct_path(came_from, current_state, initial_prompt), self.log_contents
 
             thoughts = self.model.generate_thoughts(current_state, num_thoughts, initial_prompt)
