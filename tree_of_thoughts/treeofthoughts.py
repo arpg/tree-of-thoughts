@@ -217,15 +217,11 @@ class TreeofThoughtsBEST:
 class TreeofThoughtsASearch:
     def __init__(self, model):
         self.model = model
-        
-        self.log_stream = io.StringIO()
-        
-        # Create a StreamHandler that writes to the StringIO object
-        self.stream_handler = logging.StreamHandler(self.log_stream)
 
     def solve(self, initial_prompt, num_thoughts=5, max_steps=30, pruning_threshold=0.4):
         #the open set is implemented as a piorituve quue where the priority is -f_score
-
+        log_stream = io.StringIO()
+        stream_handler = logging.StreamHandler(log_stream)
         logger.info("Using initial_prompt:")
         logger.info(initial_prompt)
         open_set = PriorityQueue()
@@ -250,7 +246,7 @@ class TreeofThoughtsASearch:
             _, _, current_state = open_set.get()
 
             if self.is_goal(current_state, f_scores[current_state]):
-                return self.reconstruct_path(came_from, current_state, initial_prompt), self.log_contents
+                return self.reconstruct_path(came_from, current_state, initial_prompt), log_stream.getvalue()
 
             thoughts = self.model.generate_thoughts(current_state, num_thoughts, initial_prompt)
             evaluated_thoughts = {thought: self.model.evaluate_states({thought: 0}, initial_prompt)[thought] for thought in thoughts}
@@ -268,7 +264,7 @@ class TreeofThoughtsASearch:
                     f_scores[thought] = tentative_g_score + value
                     open_set.put((-f_scores[thought], g_scores[thought], thought))
 
-        return self.reconstruct_path(came_from, current_state, initial_prompt), self.log_contents
+        return self.reconstruct_path(came_from, current_state, initial_prompt), log_stream.getvalue()
 
     
     def is_goal(self, state, score):
@@ -287,7 +283,6 @@ class TreeofThoughtsASearch:
         logger.info("Solution generated:")
         logger.info(solution)
         print(f"Path: {path} solution: {solution}")
-        self.log_contents = self.log_stream.getvalue()
         return solution if solution else path
 
 
