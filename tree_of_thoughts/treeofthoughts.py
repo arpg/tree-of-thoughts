@@ -249,7 +249,7 @@ class TreeofThoughtsASearch:
             _, _, current_state = open_set.get()
 
             if self.is_goal(current_state, f_scores[current_state]):
-                return self.reconstruct_path(came_from, current_state, initial_prompt), log_stream.getvalue()
+                return self.reconstruct_path(came_from, current_state, initial_prompt), self.log_stream.getvalue()
 
             thoughts = self.model.generate_thoughts(current_state, num_thoughts, initial_prompt)
             evaluated_thoughts = {thought: self.model.evaluate_states({thought: 0}, initial_prompt)[thought] for thought in thoughts}
@@ -267,7 +267,7 @@ class TreeofThoughtsASearch:
                     f_scores[thought] = tentative_g_score + value
                     open_set.put((-f_scores[thought], g_scores[thought], thought))
 
-        return self.reconstruct_path(came_from, current_state, initial_prompt), log_stream.getvalue()
+        return self.reconstruct_path(came_from, current_state, initial_prompt), self.log_stream.getvalue()
 
     
     def is_goal(self, state, score):
