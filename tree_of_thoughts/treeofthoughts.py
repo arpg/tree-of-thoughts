@@ -286,7 +286,7 @@ class TreeofThoughtsASearch:
         logger.info("Solution generated:")
         logger.info(solution)
         print(f"Path: {path} solution: {solution}")
-        self.log_contents = log_contents = log_stream.getvalue()
+        self.log_contents = log_stream.getvalue()
         return solution if solution else path
 
 
