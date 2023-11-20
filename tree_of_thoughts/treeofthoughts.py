@@ -219,6 +219,11 @@ class TreeofThoughtsASearch:
 
     def solve(self, initial_prompt, num_thoughts=5, max_steps=30, pruning_threshold=0.4):
         #the open set is implemented as a piorituve quue where the priority is -f_score
+        # Create a StringIO object to store the log messages
+        log_stream = io.StringIO()
+        
+        # Create a StreamHandler that writes to the StringIO object
+        stream_handler = logging.StreamHandler(log_stream)
         logger.info("Using initial_prompt:")
         logger.info(initial_prompt)
         open_set = PriorityQueue()
@@ -261,7 +266,8 @@ class TreeofThoughtsASearch:
                     f_scores[thought] = tentative_g_score + value
                     open_set.put((-f_scores[thought], g_scores[thought], thought))
 
-        return self.reconstruct_path(came_from, current_state, initial_prompt), logger
+        log_contents = log_stream.getvalue()
+        return self.reconstruct_path(came_from, current_state, initial_prompt), log_contents
 
     
     def is_goal(self, state, score):
