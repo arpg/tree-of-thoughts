@@ -233,7 +233,6 @@ class TreeofThoughtsASearch:
         #the set of visited_states
         visited_states = set()
 
-
         #the g_scores and f-scores are stored as dictionaries
         g_scores = {initial_prompt: 0}
         f_scores = {initial_prompt: self.model.evaluate_states({initial_prompt: 0}, initial_prompt)[initial_prompt]}
@@ -251,8 +250,6 @@ class TreeofThoughtsASearch:
             if self.is_goal(current_state, f_scores[current_state]):
                 return self.reconstruct_path(came_from, current_state, initial_prompt), self.log_stream.getvalue()
 
-            self.logger.info("Current state:")
-            self.logger.info(current_state)
             thoughts = self.model.generate_thoughts(current_state, num_thoughts, initial_prompt)
             self.logger.info("Thoughts:")
             self.logger.info(thoughts)
@@ -276,7 +273,7 @@ class TreeofThoughtsASearch:
     
     def is_goal(self, state, score):
         #if eval state is above 0.9
-        return score >= 0.9
+        return score >= 0.99
     
     def reconstruct_path(self, came_from, current_state, initial_prompt):
         path = [current_state]
