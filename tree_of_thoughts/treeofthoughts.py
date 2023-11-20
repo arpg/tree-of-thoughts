@@ -252,6 +252,8 @@ class TreeofThoughtsASearch:
                 return self.reconstruct_path(came_from, current_state, initial_prompt), self.log_stream.getvalue()
 
             thoughts = self.model.generate_thoughts(current_state, num_thoughts, initial_prompt)
+            self.logger.info("Thoughts:")
+            self.logger.info(thoughts)
             evaluated_thoughts = {thought: self.model.evaluate_states({thought: 0}, initial_prompt)[thought] for thought in thoughts}
             self.logger.info("Evaluated thoughts:")
             self.logger.info(evaluated_thoughts)
