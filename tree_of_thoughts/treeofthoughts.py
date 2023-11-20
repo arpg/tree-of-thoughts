@@ -217,14 +217,15 @@ class TreeofThoughtsBEST:
 class TreeofThoughtsASearch:
     def __init__(self, model):
         self.model = model
-
-    def solve(self, initial_prompt, num_thoughts=5, max_steps=30, pruning_threshold=0.4):
-        #the open set is implemented as a piorituve quue where the priority is -f_score
-        # Create a StringIO object to store the log messages
+        
         log_stream = io.StringIO()
         
         # Create a StreamHandler that writes to the StringIO object
         stream_handler = logging.StreamHandler(log_stream)
+
+    def solve(self, initial_prompt, num_thoughts=5, max_steps=30, pruning_threshold=0.4):
+        #the open set is implemented as a piorituve quue where the priority is -f_score
+
         logger.info("Using initial_prompt:")
         logger.info(initial_prompt)
         open_set = PriorityQueue()
