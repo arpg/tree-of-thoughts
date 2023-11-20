@@ -3,6 +3,7 @@
 import json
 import os
 import time
+import io
 
 DATA_PATH = './data'
 import logging
