@@ -273,7 +273,7 @@ class TreeofThoughtsASearch:
     
     def is_goal(self, state, score):
         #if eval state is above 0.9
-        return score >= 0.99
+        return score >= 0.9
     
     def reconstruct_path(self, came_from, current_state, initial_prompt):
         path = [current_state]
