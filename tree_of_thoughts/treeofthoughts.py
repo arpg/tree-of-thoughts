@@ -268,7 +268,7 @@ class TreeofThoughtsASearch:
                     open_set.put((-f_scores[thought], g_scores[thought], thought))
 
         log_contents = log_stream.getvalue()
-        return self.reconstruct_path(came_from, current_state, initial_prompt), log_contents
+        return self.reconstruct_path(came_from, current_state, initial_prompt), "hello world"
 
     
     def is_goal(self, state, score):
