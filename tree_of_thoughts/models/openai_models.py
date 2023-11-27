@@ -68,8 +68,8 @@ class OpenAILanguageModel(AbstractLanguageModel):
                         stop=stop,
                         temperature=temperature,
                     )
-                with open("openai.logs", 'a') as log_file:
-                    log_file.write("\n" + "-----------" + '\n' +"Prompt : "+ prompt+"\n")
+                #with open("openai.logs", 'a') as log_file:
+                #    log_file.write("\n" + "-----------" + '\n' +"Prompt : "+ prompt+"\n")
                 return response
             except openai.error.RateLimitError as e:
                 sleep_duratoin = os.environ.get("OPENAI_RATE_TIMEOUT", 30)
