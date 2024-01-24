@@ -64,6 +64,41 @@ class TreeofThoughts:
         else:
             return max(np.mean(values[-window_size:]), 0.1)
 
+    def get_leaf_nodes(self):
+        """Returns a list of leaf nodes in the tree."""
+        leaf_nodes = []
+        for node in self.tree['nodes']:
+            if not self.tree['nodes'][node]['thoughts']:  # Leaf nodes have no thoughts
+                leaf_nodes.append(node)
+        return leaf_nodes
+
+    def find_lca(self, node1, node2):
+        """Finds the lowest common ancestor of two nodes."""
+        ancestors1 = self.get_ancestors(node1)
+        ancestors2 = self.get_ancestors(node2)
+
+        # Iterate from the root to find the first common ancestor
+        lca = None
+        for ancestor in ancestors1:
+            if ancestor in ancestors2:
+                lca = ancestor
+                break
+        return lca
+
+    def get_ancestors(self, node):
+        """Returns a list of ancestors of a given node."""
+        ancestors = []
+        while node:
+            ancestors.append(node)
+            node = self.get_parent(node)
+        return ancestors
+
+    def get_parent(self, node):
+        """Returns the parent of a given node."""
+        for parent, child in self.tree['nodes'].items():
+            if node in child['thoughts']:
+                return parent
+        return None
 
 
 ######################  
