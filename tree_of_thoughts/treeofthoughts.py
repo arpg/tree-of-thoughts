@@ -4,10 +4,10 @@ import json
 import os
 import time
 import io
+from queue import Queue
 
 DATA_PATH = './data'
 import logging
-
 
 import concurrent.futures
 from queue import PriorityQueue
@@ -101,60 +101,48 @@ class TreeofThoughts:
         return None
 
 
-######################  
+######################
 
 class TreeofThoughtsBFS(TreeofThoughts):
     def solve(self, initial_prompt, num_thoughts, max_steps, max_states, value_threshold, pruning_threshold=0.5):
-        current_states = [initial_prompt]
+        state_queue = Queue()
+        state_queue.put(initial_prompt)
+        visited_states = set()
         state_values = {}
         dynamic_pruning_threshold = pruning_threshold
 
         try:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 for step in range(1, max_steps + 1):
-                    selected_states = []
-                    for state in current_states:
-                        thoughts = self.model.generate_thoughts(state, num_thoughts, initial_prompt)
-                        futures = [executor.submit(self.model.evaluate_states, {thought: 0}, initial_prompt) for thought in thoughts]
-                        concurrent.futures.wait(futures)
-                        evaluated_thoughts = {thought: fut.result() for thought, fut in zip(thoughts, futures) if isinstance(fut.result(), (int, float))}  # check if result is a number
+                    if state_queue.empty():
+                        break
 
-                        if evaluated_thoughts:  # only adjust if you have evaluated thoughts
-                            dynamic_pruning_threshold = self.adjust_pruning_threshold_moving_average(evaluated_thoughts, 5)
+                    current_state = state_queue.get()
+                    if current_state in visited_states:
+                        continue
 
-                        for thought, value in evaluated_thoughts.items():
-                            flattened_state = (state, thought) if isinstance(state, str) else (*state, thought)
-                            selected_states.append((flattened_state, value))
+                    visited_states.add(current_state)
+                    thoughts = self.model.generate_thoughts(current_state, num_thoughts, initial_prompt)
+                    futures = [executor.submit(self.model.evaluate_states, {thought: 0}, initial_prompt) for thought in thoughts]
+                    concurrent.futures.wait(futures)
+                    evaluated_thoughts = {thought: fut.result() for thought, fut in zip(thoughts, futures) if isinstance(fut.result(), (int, float))}
 
-                        selected_states.sort(key=lambda x: x[1], reverse=True)
-                        selected_states = selected_states[:max_states]  # Select only the top states
+                    if evaluated_thoughts:
+                        dynamic_pruning_threshold = self.adjust_pruning_threshold_moving_average(evaluated_thoughts, 5)
 
-                        for state, value in selected_states:
-                            if value >= dynamic_pruning_threshold:
-                                state_values[state] = value
-                                self.logNewState(state, value)
-                                logger.debug(f"State Values: {state_values}")
+                    for thought, value in evaluated_thoughts.items():
+                        if value >= dynamic_pruning_threshold:
+                            new_state = (current_state, thought) if isinstance(current_state, str) else (*current_state, thought)
+                            state_queue.put(new_state)
+                            state_values[new_state] = value
+                            self.logNewState(new_state, value)
 
-            # if state_values:
-            #     highest_rated_solution = max(state_values.items(), key=lambda x: x[1])
-            #     print(f"highest rated solution: {highest_rated_solution}")
-            #     highest_rated_state = highest_rated_solution[0]  # Use a different name to avoid confusion
-            #     print(f'highest rated state: {highest_rated_state}')
-            #     try:
-            #         solution = self.model.generate_solution(initial_prompt, highest_rated_state)
-            #     except Exception as e:
-            #         logger.error(f"Error in generating solution: {e}")
-            #         solution = None  # Set a fallback value for solution
-
-            #     return solution if solution is not None else highest_rated_state  # Return highest rated state if solution is None
             if state_values:
                 highest_rated_solution = max(state_values.items(), key=lambda x: x[1])
                 highest_rated_state = highest_rated_solution[0]  
                 solution = self.model.generate_solution(initial_prompt, highest_rated_state)
                 print(f"Highest_rated solution: {highest_rated_solution} highest_rated_solution: {highest_rated_solution} Solution: {solution}")
-
                 return solution if solution else highest_rated_state
-
             else:
                 return None
 
@@ -163,302 +151,239 @@ class TreeofThoughtsBFS(TreeofThoughts):
             return None
 
 
-###########
+######################
 
 class TreeofThoughtsDFS(TreeofThoughts):
     def solve(self, initial_prompt, num_thoughts, max_steps, value_threshold, pruning_threshold=0.5):
+        visited_states = set()
         output = []
 
         def dfs(state, step):
             nonlocal output
+            if state in visited_states:
+                return
+            visited_states.add(state)
+
             if step > max_steps:
                 thought = self.model.generate_thoughts(state, 1, initial_prompt)
                 value = self.model.evaluate_states({state}, initial_prompt)[state]
                 output.append((thought, value))
                 return
 
-            thoughts = self.model.generate_thoughts(state, self.num_thoughts, initial_prompt)
+            thoughts = self.model.generate_thoughts(state, num_thoughts, initial_prompt)
             evaluated_thoughts = self.model.evaluate_states({thought: 0 for thought in thoughts}, initial_prompt)
-            filtered_thoughts = [thought for thought in thoughts if evaluated_thoughts[thought] >= self.pruning_threshold]
-
+            filtered_thoughts = [thought for thought in thoughts if evaluated_thoughts[thought] >= pruning_threshold]
 
             for next_state in filtered_thoughts:
                 state_value = self.model.evaluate_states({next_state: 0}, initial_prompt)[next_state]
 
-                if state_value > self.value_threshold:
+                if state_value > value_threshold:
                     child = (state, next_state) if isinstance(state, str) else (*state, next_state)
                     dfs(child, step + 1)
+
         try:
             dfs(initial_prompt, 1)
-            best_state, _ = max(output, key=lambda x: x[1])
-            solution = self.model.generate_solution(initial_prompt, best_state)
-            return solution if solution else best_state
+            if output:
+                best_state, _ = max(output, key=lambda x: x[1])
+                solution = self.model.generate_solution(initial_prompt, best_state)
+                return solution if solution else best_state
+            else:
+                return None
         except Exception as e:
             logger.error(f"Error in tot_dfs: {e}")
             return None
 
 
-#v2 => best first search => explores state space of the quality of the states
-#priority que or greedy BFS
-class TreeofThoughtsBEST:
+######################
+class TreeofThoughtsBEST(TreeofThoughts):
     def __init__(self, model):
-        self.model = model
-        self.tree = {"nodes": {}}
+        super().__init__(model)
+        self.visited_states = set()
 
-    def save_tree_to_json(self, file_name):
-        os.makdirs(os.path.dirname(file_name), exist_ok=True)
-        with open(file_name, 'w') as json_file:
-            json.dump(self.tree, json_file, indent=4)
-
-    def log_new_state(self, state, evaluation):
-        state_key = " | ".join(state) if isinstance(state, tuple) else state
-        if state_key in self.tree["nodes"]:
-            self.tree["nodes"][state_key]['thoughts'].append(evaluation)
-        else:
-            self.tree['nodes']['state_key'] = {'thoughts': [evaluation]}
-
-    def solve(self, initial_prompt, num_thoughts, max_steps, pruning_threshold):
-        visited_states = set()
+    def solve(self, initial_prompt, num_thoughts, max_steps):
         state_queue = PriorityQueue()
-
-        state_queue.put((0, initial_prompt))
+        state_queue.put((0, initial_prompt))  # Priority, State
+        self.visited_states.add(initial_prompt)
 
         for _ in range(max_steps):
             if state_queue.empty():
-                break
+                return None  # No solution found within the given steps
 
-            _, state = state_queue.get()
+            _, current_state = state_queue.get()
 
-            if state in visited_states:
-                continue
-
-            visited_states.add(state)
-
-            thoughts = self.model.generate_thoughts(state, num_thoughts, initial_prompt)
-            evaluated_thoughts = {thought: self.model.evaluate_states({thought: 0}, initial_prompt)[thought] for thought in thoughts}
-
-            for thought, value in evaluated_thoughts.items():
-                if value >= pruning_threshold:
-                    new_state = (state, thought) if isinstance(state, str) else (*state, thought)
-                    state_queue.put((value, new_state))
-                    self.log_new_state(new_state, value)
-        
-        best_state = max(visited_states, key=self.model.evaluate_states)
-        solution = self.model.generate_solution(initial_prompt, best_state)
-        print(f"Highest_rated solution: {best_state}  Solution: {solution}")
-        return solution if solution else best_state
-
-#A* search algorithm
-class TreeofThoughtsASearch:
-    def __init__(self, model):
-        self.model = model
-        self.logger = logging.getLogger(__name__)
-        self.log_stream = io.StringIO()
-        stream_handler = logging.StreamHandler(self.log_stream)
-        self.logger.addHandler(stream_handler)
-        self.logger.setLevel(logging.INFO)
-
-    def solve(self, initial_prompt, num_thoughts=5, max_steps=30, pruning_threshold=0.4):
-        #the open set is implemented as a piorituve quue where the priority is -f_score
-        self.logger.info("Using initial_prompt:")
-        self.logger.info(initial_prompt)
-        open_set = PriorityQueue()
-        open_set.put((0, 0, initial_prompt))
-
-        #the set of visited_states
-        visited_states = set()
-
-        #the g_scores and f-scores are stored as dictionaries
-        g_scores = {initial_prompt: 0}
-        f_scores = {initial_prompt: self.model.evaluate_states({initial_prompt: 0}, initial_prompt)[initial_prompt]}
-
-
-        #the parent of each state is stored in a dictionary
-        came_from = {}
-
-        for _ in range(max_steps):
-            if open_set.empty():
-                break
-
-            _, _, current_state = open_set.get()
-
-            if self.is_goal(current_state, f_scores[current_state]):
-                return self.reconstruct_path(came_from, current_state, initial_prompt), self.log_stream.getvalue()
+            if self.is_goal(current_state):
+                return self.reconstruct_solution(current_state)
 
             thoughts = self.model.generate_thoughts(current_state, num_thoughts, initial_prompt)
-            self.logger.info("Thoughts:")
-            self.logger.info(thoughts)
-            evaluated_thoughts = {thought: self.model.evaluate_states({thought: 0}, initial_prompt)[thought] for thought in thoughts}
-            self.logger.info("Evaluated thoughts:")
-            self.logger.info(evaluated_thoughts)
+            evaluated_thoughts = self.model.evaluate_states(thoughts, initial_prompt)
 
             for thought, value in evaluated_thoughts.items():
-                if value < pruning_threshold or thought in visited_states:
+                next_state = (current_state, thought) if isinstance(current_state, str) else (*current_state, thought)
+                if next_state not in self.visited_states:
+                    self.visited_states.add(next_state)
+                    heuristic_value = self.heuristic(next_state)
+                    state_queue.put((-heuristic_value, next_state))  # Use negative because PriorityQueue is min-heap
+
+        return None  # No solution found
+
+    def heuristic(self, state):
+        # Define the heuristic function
+        # Example: return a negative value of the state's evaluation
+        return -self.model.evaluate_state_heuristic(state)
+
+    def is_goal(self, state):
+        # Define goal criteria
+        # Example: Check if state meets certain criteria
+        return self.model.check_goal(state)
+
+    def reconstruct_solution(self, state):
+        # Reconstruct the path from the final state to the initial state
+        solution_path = []
+        while state:
+            solution_path.append(state)
+            state = self.get_parent(state)
+        solution_path.reverse()
+        return solution_path
+
+    def get_parent(self, state):
+        # Find parent of the given state
+        for parent, child in self.tree['nodes'].items():
+            if state in child['thoughts']:
+                return parent
+        return None
+
+
+######################
+    def solve(self, initial_prompt, num_thoughts=5, max_steps=30, pruning_threshold=0.4):
+        # Initialize the open set with the initial prompt
+        open_set = PriorityQueue()
+        open_set.put((0, initial_prompt))
+
+        # Sets of visited and expanded states
+        visited_states = set()
+        expanded_states = set()
+
+        # g_scores, f_scores, and heuristic function
+        g_scores = {initial_prompt: 0}
+        f_scores = {initial_prompt: self.heuristic(initial_prompt)}
+
+        # Parent tracking for path reconstruction
+        came_from = {}
+
+        while not open_set.empty() and len(visited_states) < max_steps:
+            current_f_score, current_state = open_set.get()
+
+            if current_state in expanded_states:
+                continue
+
+            expanded_states.add(current_state)
+            visited_states.add(current_state)
+
+            # Goal check (modify this as per the specific application's need)
+            if self.is_goal(current_state):
+                return self.reconstruct_path(came_from, current_state)
+
+            thoughts = self.model.generate_thoughts(current_state, num_thoughts, initial_prompt)
+            for thought in thoughts:
+                next_state = (current_state, thought) if isinstance(current_state, str) else (*current_state, thought)
+
+                if next_state in visited_states:
                     continue
 
-                tentative_g_score = g_scores[current_state] + 1 / value
-                if thought not in g_scores or tentative_g_score < g_scores[thought]:
-                    came_from[thought] = current_state
-                    g_scores[thought] = tentative_g_score
-                    f_scores[thought] = tentative_g_score + value
-                    open_set.put((-f_scores[thought], g_scores[thought], thought))
+                tentative_g_score = g_scores[current_state] + self.cost(current_state, next_state)
+                if next_state not in g_scores or tentative_g_score < g_scores[next_state]:
+                    came_from[next_state] = current_state
+                    g_scores[next_state] = tentative_g_score
+                    f_scores[next_state] = tentative_g_score + self.heuristic(next_state)
+                    open_set.put((f_scores[next_state], next_state))
 
-        return self.reconstruct_path(came_from, current_state, initial_prompt), self.log_stream.getvalue()
+        # No solution found
+        return None
 
-    
-    def is_goal(self, state, score):
-        #if eval state is above 0.9
-        return score >= 0.9
-    
-    def reconstruct_path(self, came_from, current_state, initial_prompt):
-        path = [current_state]
+    def heuristic(self, state):
+        # Define the heuristic function here
+        # For example, it might be based on the evaluation of the state
+        # This function should never overestimate the cost to reach the goal
+        return self.model.evaluate_state_heuristic(state)
+
+    def cost(self, current_state, next_state):
+        # Define the cost function between states
+        # This could be a constant value or based on some criteria
+        return 1  # Example: constant cost
+
+    def is_goal(self, state):
+        # Define the goal check here
+        # The function should return True if the state meets the goal criteria
+        return self.model.check_goal(state)
+
+    def reconstruct_path(self, came_from, current_state):
+        # Reconstruct the path from the start state to the goal state
+        path = []
         while current_state in came_from:
-            current_state = came_from[current_state]
             path.append(current_state)
+            current_state = came_from[current_state]
         path.reverse()
-    
-        # The recursive call to self.reconstruct_path has been removed
-        solution = self.model.generate_solution(initial_prompt, path)
-        self.logger.info("Solution generated:")
-        self.logger.info(solution)
-        print(f"Path: {path} solution: {solution}")
-        return solution if solution else path
+        return path
 
-
+######################
 class MonteCarloTreeofThoughts(TreeofThoughts):
     def __init__(self, model, objective="balance"):
         super().__init__(model)
         self.objective = objective
-        self.solution_found = False
-        self.tree: Dict[str, Dict[str, Union[float, Dict[str, Any]]]] = {
-            "nodes": {},
-            "metrics": {"thoughts": {}, "evaluations": {}},
-        }
+        self.tree = {"nodes": {}}
 
+    def solve(self, initial_prompt, num_thoughts, max_steps, max_states, exploration_constant):
+        self.tree["nodes"][initial_prompt] = {"visits": 0, "value": 0, "children": []}
+        for _ in range(max_steps):
+            leaf = self.select(initial_prompt)
+            self.expand(leaf, num_thoughts, initial_prompt)
+            winner = self.simulate(leaf)
+            self.backpropagate(leaf, winner)
 
-    def optimize_params(self, num_thoughts, max_steps, max_states):
-        if self.objective == 'speed':
-            num_thoughts = max(1, num_thoughts - 1)
-            max_steps = max(1, max_steps - 1)
-            max_states = max(1, max_states - 1)
-        elif self.objective == 'reliability':
-            num_thoughts += 1
-            max_steps += 1
-            max_states += 1
-        elif self.objective == 'balanace':
-            if self.solution_found:
-                num_thoughts = max(1, num_thoughts - 1)
-                max_steps = max(1, max_steps - 1)
-                max_states = max(1, max_states - 1)
-            else:
-                num_thoughts += 1
-                max_steps += 1
-                max_states += 1
-        
-        return num_thoughts, max_steps, max_states
+        best_state = max(self.tree["nodes"][initial_prompt]["children"], key=lambda child: self.tree["nodes"][child]["value"])
+        return best_state
 
-    def solve(self,
-              initial_prompt: str,
-              num_thoughts: int,
-              max_steps: int,
-              max_states: int,
-              pruning_threshold: float,
-            #   sleep_time: float,
-              ):
-        self.file_name = "logs/tree_of_thoughts_output_montecarlo.json"
-        return self.monte_carlo_search(
-            initial_prompt,
-            num_thoughts,
-            max_steps,
-            max_states,
-            pruning_threshold,
-            # sleep_time,
-        )
-#v3
-    def monte_carlo_search(self,
-                        initial_prompt: str,
-                        num_thoughts: int,
-                        max_steps: int,
-                        max_states: int,
-                        pruning_threshold: float,
-                        ):
-        current_states = [initial_prompt]
-        state_values = {}
-        visit_counts = {initial_prompt: 0}
-        transposition_table = {}
+    def select(self, state):
+        while self.tree["nodes"][state]["children"]:
+            state = max(self.tree["nodes"][state]["children"], key=lambda child: self.ucb1(child))
+        return state
 
-        best_state = None
-        best_value = float('-inf')
+    def expand(self, state, num_thoughts, initial_prompt):
+        if state not in self.tree["nodes"]:
+            self.tree["nodes"][state] = {"visits": 0, "value": 0, "children": []}
+            thoughts = self.model.generate_thoughts(state, num_thoughts, initial_prompt)
+            for thought in thoughts:
+                next_state = (state, thought) if isinstance(state, str) else (*state, thought)
+                self.tree["nodes"][state]["children"].append(next_state)
+                self.tree["nodes"][next_state] = {"visits": 0, "value": 0, "children": []}
 
-        for step in range(1, max_steps + 1):
-            selected_states = []
+    def simulate(self, state):
+        # Implement the simulation logic specific to the problem domain
+        # For example, randomly select a child and evaluate its value
+        return np.random.choice(self.tree["nodes"][state]["children"])
 
-            for state in current_states:
-                if state in transposition_table:
-                    transposition_table[state]
-                else:
-                    time.sleep(1)
-                    thoughts = self.model.generate_thoughts(state, num_thoughts, initial_prompt)
-                    time.sleep(1)
-                    evaluated_thoughts = self.model.evaluate_states(thoughts, initial_prompt)
+    def backpropagate(self, state, winner):
+        while state:
+            self.tree["nodes"][state]["visits"] += 1
+            if winner in self.tree["nodes"][state]["children"]:
+                self.tree["nodes"][state]["value"] += 1
+            state = self.get_parent(state)
 
-                    for thought, value in evaluated_thoughts.items():
-                        flattened_state = (state, thought) if isinstance(state, str) else (*state, thought)
-                        transposition_table[flattened_state] = value
+    def ucb1(self, child):
+        parent_visits = self.tree["nodes"][self.get_parent(child)]["visits"]
+        child_visits = self.tree["nodes"][child]["visits"]
+        if child_visits == 0:
+            return float('inf')
+        win_rate = self.tree["nodes"][child]["value"] / child_visits
+        return win_rate + 2 * np.sqrt(np.log(parent_visits) / child_visits)
 
-                for thought, value in evaluated_thoughts.items():
-                    flattened_state = (state, thought) if isinstance(state, str) else (*state, thought)
+    def get_parent(self, node):
+        for parent, data in self.tree["nodes"].items():
+            if node in data["children"]:
+                return parent
+        return None
 
-                    if flattened_state not in visit_counts:
-                        visit_counts[flattened_state] = 0
-
-                    if visit_counts[state] > visit_counts[flattened_state] and visit_counts[flattened_state] > 0:
-                        ucb1_value = value + np.sqrt(2 * np.log(visit_counts[state]) / visit_counts[flattened_state])
-
-                        if ucb1_value >= pruning_threshold:
-                            selected_states.append(flattened_state)
-                            state_values[flattened_state] = value
-
-                            # Update the best state if the current state value is greater than the best value
-                            if value > best_value:
-                                best_state = flattened_state
-                                best_value = value
-
-                visit_counts[state] += 1
-
-            if len(selected_states) > max_states:
-                current_states = selected_states[:max_states]
-            self.save_tree_to_json(self.file_name)
-
-        # if best_state is not None:
-        #     solution = self.model.generate_solution(initial_prompt, best_state)
-        #     return solution
-        # else:
-        #     solution = None
-
-        # return None
-        solution = self.model.generate_solution(initial_prompt, best_state)
-        return solution if solution else best_state
-
-# #does not output state after each thought --- idk why -- needs work
-# class OptimizedTreeofThoughts(TreeofThoughts):
-#     def solve(self, x, k=None, T=None, b=None, vth=None, timeout=None, confidence_threshold=None, max_iterations=None, convergence_threshold=None, convergence_count=None):
-#         start_time = time.time()
-#         print(f'Start time {start_time}')
-#         if self.search_algorithm == 'BFS':
-#             while timeout is None or time.time() - start_time < timeout:
-#                 result = self.tot_bfs(x, k, T, b, pruning_threshold=0.5)
-#                 print(f'result in optimized tree of thoughts: {result}')
-#                 if result:
-#                     return result
-#         elif self.search_algorithm == 'DFS':
-#             while timeout is None or time.time() - start_time < timeout:
-#                 result = self.tot_dfs(x, k, T, vth, confidence_threshold=confidence_threshold, max_iterations=max_iterations, convergence_threshold=convergence_threshold, convergence_count=convergence_count)
-#                 if result:
-#                     return result
-#         else:
-#             raise ValueError("Invalid search algorithm. Choose 'BFS' or 'DFS'.")
-
+######################
 
 class TextGenerationWebUILanguageModel(AbstractLanguageModel):
     def __init__(self, strategy="cot", evaluation_strategy="value"):
