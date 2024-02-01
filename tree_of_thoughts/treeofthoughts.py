@@ -3,6 +3,7 @@
 import json
 import os
 import time
+import random
 import io
 from queue import Queue
 
@@ -98,16 +99,16 @@ class TreeofThoughts:
                 return parent
         return None
 
-
 ######################
 
 class TreeofThoughtsBFS(TreeofThoughts):
-    def solve(self, initial_prompt, num_thoughts, max_steps, max_states, value_threshold, pruning_threshold=0.5):
+    def solve(self, initial_prompt, num_thoughts, max_steps, max_states=20, value_threshold=0.5, pruning_threshold=0.5):
         state_queue = Queue()
         state_queue.put(initial_prompt)
         visited_states = set()
         state_values = {}
         dynamic_pruning_threshold = pruning_threshold
+        last_batch_of_states = []  # To keep track of the last batch of generated states
 
         try:
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -125,6 +126,7 @@ class TreeofThoughtsBFS(TreeofThoughts):
                     concurrent.futures.wait(futures)
                     evaluated_thoughts = {thought: fut.result() for thought, fut in zip(thoughts, futures) if isinstance(fut.result(), (int, float))}
 
+                    last_batch_of_states.clear()  # Clear previous states before adding new ones
                     if evaluated_thoughts:
                         dynamic_pruning_threshold = self.adjust_pruning_threshold_moving_average(evaluated_thoughts, 5)
 
@@ -134,20 +136,26 @@ class TreeofThoughtsBFS(TreeofThoughts):
                             state_queue.put(new_state)
                             state_values[new_state] = value
                             self.logNewState(new_state, value)
+                            last_batch_of_states.append(new_state)  # Add to the last batch
 
             if state_values:
                 highest_rated_solution = max(state_values.items(), key=lambda x: x[1])
                 highest_rated_state = highest_rated_solution[0]  
                 solution = self.model.generate_solution(initial_prompt, highest_rated_state)
-                print(f"Highest_rated solution: {highest_rated_solution} highest_rated_solution: {highest_rated_solution} Solution: {solution}")
-                return solution if solution else highest_rated_state
-            else:
-                return None
+                if solution:
+                    print(f"Highest_rated solution: {highest_rated_solution} highest_rated_solution: {highest_rated_solution} Solution: {solution}")
+                    return solution
+                else:
+                    # If unsuccessful in generating a valid solution, select a random one from the last batch
+                    if last_batch_of_states:
+                        random_state = random.choice(last_batch_of_states)
+                        print(f"Randomly selected fallback solution: {random_state}")
+                        return random_state
+            return None
 
         except Exception as e:
             logger.error(f"Error in tot_bfs: {e}")
             return None
-
 
 ######################
 
@@ -260,7 +268,7 @@ class TreeofThoughtsASearch:
         stream_handler = logging.StreamHandler(self.log_stream)
         self.logger.addHandler(stream_handler)
         self.logger.setLevel(logging.INFO)
-        
+
     def solve(self, initial_prompt, num_thoughts=5, max_steps=30, pruning_threshold=0.4):
         # Initialize the open set with the initial prompt
         open_set = PriorityQueue()

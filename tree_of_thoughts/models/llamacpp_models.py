@@ -3,18 +3,17 @@ import time
 import requests
 import logging
 from tree_of_thoughts.models.abstract_language_model import AbstractLanguageModel
-import concurrent.futures
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class LlamacppLanguageModel(AbstractLanguageModel):
-    def __init__(self, server_url, model_name, strategy="tot", evaluation_strategy="value", enable_ReAct_prompting=False):
+    def __init__(self, server_url, model_name = "", strategy="tot", evaluation_strategy="value", enable_ReAct_prompting=False):
         self.server_url = server_url
-        self.model_name = model_name
         self.strategy = strategy
         self.evaluation_strategy = evaluation_strategy
         self.ReAct_prompt = ''
+        # this generally should not be enabled
         if enable_ReAct_prompting:
             self.ReAct_prompt = "Write down your observations in format 'Observation:xxxx', then write down your thoughts in format 'Thoughts:xxxx'."
 
@@ -122,23 +121,4 @@ class LlamacppLanguageModel(AbstractLanguageModel):
             except ValueError:
                 state_values[state] = 0  # Assign a default value if the conversion fails
 
-        return state_values
-
-class OptimizedLlamacppLanguageModel(LlamacppLanguageModel):
-    def __init__(self, server_url, model_name, strategy="cot", evaluation_strategy="value", cache_enabled=True, enable_ReAct_prompting=False):
-        super().__init__(server_url, model_name, strategy, evaluation_strategy, enable_ReAct_prompting)
-        self.cache_enabled = cache_enabled
-        self.thought_cache = {}
-        self.state_evaluation_cache = {}
-
-    def parallel_generate_thoughts(self, states, k):
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            thoughts = list(executor.map(lambda state: self.generate_thoughts(state, k), states))
-            print(f"Parallel generated thoughts: {thoughts}")
-        return thoughts
-
-    def parallel_evaluate_states(self, states, initial_prompt):
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            state_values = list(executor.map(self.evaluate_states, states, initial_prompt))
-            print(f"Parallel evaluated state values: {state_values}")
         return state_values

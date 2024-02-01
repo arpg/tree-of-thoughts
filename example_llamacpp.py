@@ -3,16 +3,16 @@ from tree_of_thoughts.models.llamacpp_models import LlamacppLanguageModel
 from tree_of_thoughts.treeofthoughts import TreeofThoughtsBFS
 
 # Server URL and Model Name for Llamacpp Language Model
-server_url = "172.206.254.216:8040"  # Replace with your server URL
+server_url = "http://172.206.254.216:8040/completion"  # Replace with your server URL
 
 # Initialize the LlamacppLanguageModel class with the server URL and model name
-model = LlamacppLanguageModel(server_url=server_url)
+model = LlamacppLanguageModel(model_name="", server_url=server_url)
 
 # Initialize the MonteCarloTreeofThoughts class with the Llamacpp model
 tree_of_thoughts = TreeofThoughtsBFS(model)
 
 # Craft an initial prompt for your task
-initial_prompt = "Write an application in python intended to calculate pi from first principles."
+initial_prompt = "Five philosophers dine together at the same table. Each philosopher has his own plate at the table. There is a fork between each plate. The dish served is a kind of spaghetti which has to be eaten with two forks. Each philosopher can only alternately think and eat. Moreover, a philosopher can only eat his spaghetti when he has both a left and right fork. Thus two forks will only be available when his two nearest neighbors are thinking, not eating. After an individual philosopher finishes eating, he will put down both forks. The problem is how to design a regimen (a concurrent algorithm) such that any philosopher will not starve; i.e., each can forever continue to alternate between eating and thinking, assuming that no philosopher can know when others may want to eat or think (an issue of incomplete information)."
 
 """
 Input: 2 8 8 14
@@ -30,9 +30,9 @@ Possible next steps:
 """
 
 # Set the parameters for solving the task
-num_thoughts = 1
-max_steps = 3
-max_states = 4
+num_thoughts = 5
+max_steps = 5
+max_states = 10
 pruning_threshold = 0.5
 
 # Solve the task using the Tree of Thoughts method
