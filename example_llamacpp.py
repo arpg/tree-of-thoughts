@@ -3,7 +3,7 @@ from tree_of_thoughts.models.llamacpp_models import LlamacppLanguageModel
 from tree_of_thoughts.treeofthoughts import TreeofThoughtsBFS
 
 # Server URL and Model Name for Llamacpp Language Model
-server_url = ""  # Replace with your server URL
+server_url = "172.206.254.216:8040"  # Replace with your server URL
 
 # Initialize the LlamacppLanguageModel class with the server URL and model name
 model = LlamacppLanguageModel(server_url=server_url)
@@ -12,7 +12,9 @@ model = LlamacppLanguageModel(server_url=server_url)
 tree_of_thoughts = TreeofThoughtsBFS(model)
 
 # Craft an initial prompt for your task
-initial_prompt = """
+initial_prompt = "Write an application in python intended to calculate pi from first principles."
+
+"""
 Input: 2 8 8 14
 Possible next steps:
 2 + 8 = 10 (left: 8 10 14)
