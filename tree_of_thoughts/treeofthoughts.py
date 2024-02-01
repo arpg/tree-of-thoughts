@@ -21,10 +21,8 @@ from tree_of_thoughts.text_generation_web_ui import (
     ui_default_parameters,
 )
 
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
 
 class TreeofThoughts:
     def __init__(self, model):

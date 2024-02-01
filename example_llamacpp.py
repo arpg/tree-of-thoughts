@@ -1,15 +1,15 @@
 import os
-from tree_of_thoughts.models.openai_models import LlamacppLanguageModel, OptimizedLlamacppLanguageModel
-from tree_of_thoughts.treeofthoughts import MonteCarloTreeofThoughts
+from tree_of_thoughts.models.llamacpp_models import LlamacppLanguageModel
+from tree_of_thoughts.treeofthoughts import TreeofThoughtsBFS
 
 # Server URL and Model Name for Llamacpp Language Model
-server_url = "http://your-server-url"  # Replace with your server URL
+server_url = ""  # Replace with your server URL
 
 # Initialize the LlamacppLanguageModel class with the server URL and model name
 model = LlamacppLanguageModel(server_url=server_url)
 
 # Initialize the MonteCarloTreeofThoughts class with the Llamacpp model
-tree_of_thoughts = MonteCarloTreeofThoughts(model)
+tree_of_thoughts = TreeofThoughtsBFS(model)
 
 # Craft an initial prompt for your task
 initial_prompt = """
