@@ -1,11 +1,36 @@
 import os
 import time
+import re
 import requests
 import logging
 from tree_of_thoughts.models.abstract_language_model import AbstractLanguageModel
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+PROMPT_ENHANCEMENT_MAP = {
+    "llama2-70B": (
+        "<s>[INST] <<SYS>>\n"
+        "You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. "
+        "Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. "
+        "Please ensure that your responses are socially unbiased and positive in nature.\n"
+        "If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. "
+        "If you don't know the answer to a question, please don't share false information.\n"
+        "<</SYS>>",
+        "[/INST]",
+    ),
+    "Mixtral-8x7B-Instruct-v0.1-GGUF": ("[INST]", "[/INST]"),
+    "wizardlm-70b-v1.0.Q4_K_M": (
+        "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n",
+        "\n\n### Response:",
+    ),
+    "wizardcoder-33b-v1.1.Q4_K_M": (
+        "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n",
+        "\n\n### Response:",
+    ),
+    # Add other models and their pre-prompt and post-prompt text here
+}
+model_name = "wizardlm-70b-v1.0.Q4_K_M"
 
 class LlamacppLanguageModel(AbstractLanguageModel):
     def __init__(self, server_url, model_name = "", strategy="tot", evaluation_strategy="value", enable_ReAct_prompting=False):
@@ -45,6 +70,11 @@ class LlamacppLanguageModel(AbstractLanguageModel):
 
     def generate_text(self, prompt, n_predict=2048, temperature=0.1, top_k=200, top_p=0.99):
         enhanced_prompt = prompt + self.ReAct_prompt
+        pre_prompt, post_prompt = PROMPT_ENHANCEMENT_MAP.get(
+            model_name, ("", ""))
+
+        # Append the pre-prompt and post-prompt text to the prompt
+        enhanced_prompt = pre_prompt + enhanced_prompt + post_prompt
         response_content = self.server_api_call_handler(enhanced_prompt, n_predict, temperature, top_k, top_p)
         return response_content
 
@@ -73,6 +103,7 @@ class LlamacppLanguageModel(AbstractLanguageModel):
         return thoughts
 
     def generate_solution(self, initial_prompt, state, rejected_solutions=None, n_predict=2048, temperature=0.1, top_k=200, top_p=0.99):
+        print("Generate solution called!")
         try:
             if isinstance(state, list):
                 state_text = '\n'.join(state)
@@ -96,29 +127,61 @@ class LlamacppLanguageModel(AbstractLanguageModel):
             logger.error(f"Error in generate_solution: {e}")
             return None
 
-    def evaluate_states(self, states, initial_prompt, n_predict=2048, temperature=0.1, top_k=200, top_p=0.99):
+    def evaluate_states(self, states, initial_prompt):
         if not states:
             return {}
 
-        state_values = {}
-        for state in states:
-            if isinstance(state, str):
-                state_text = state
-            else:
-                state_text = '\n'.join(state)
-            print("We receive a state of type", type(state), "For state: ", state, "\n\n")
+        if self.evaluation_strategy == "value":
+            state_values = {}
+            for state in states:
+                if type(state) == str:
+                    state_text = state
+                else:
+                    state_text = "\n".join(state)
+                print(
+                    "We receive a state of type",
+                    type(state),
+                    "For state: ",
+                    state,
+                    "\n\n",
+                )
+                prompt = f""" To achieve the following goal: '{initial_prompt}', pessimistically value the context of the past solutions and more importantly the latest generated solution you had AS A FLOAT BETWEEN 0 AND 1\n
+                    Past solutions:\n\n
+                    {state_text}\n       
+                    If the solutions is not directly concretely making fast progress in achieving the goal, give it a lower score.
+                    Evaluate all solutions AS A FLOAT BETWEEN 0 and 1:\n,  DO NOT RETURN ANYTHING ELSE
+                """
 
-            prompt = f"""
-            To achieve the goal: '{initial_prompt}', consider the context of previous solutions and, more critically, the most recently generated solution. Assign a value to each solution as a float ranging between 0 and 1.\n\n
-            Previous solutions:\n\n
-            {state_text}\n
-            Evaluate all solutions, assigning each a float value between 0 and 1. Do not return any other information."""
-
-            response_content = self.generate_text(prompt, n_predict, temperature, top_k, top_p)
-            try:
-                value = float(response_content)
+                response = self.generate_text(prompt)
+                try:
+                    value = float(response)
+                    print(f"Evaluated Thought Value: {value}")
+                except ValueError:
+                    value = 0  # Assign a default value if the conversion fails
                 state_values[state] = value
-            except ValueError:
-                state_values[state] = 0  # Assign a default value if the conversion fails
+            return state_values
 
-        return state_values
+        elif self.evaluation_strategy == "vote":
+            states_text = "\n".join([" ".join(state) for state in states])
+            prompt = (
+                "Given the following states of reasoning, vote for the best"
+                " state utilizing an scalar value"
+                f" 1-10:\n{states_text}\n\nVote, on the probability of this"
+                f" state of reasoning achieveing {initial_prompt} and become"
+                " very pessimistic very NOTHING ELSE"
+            )
+            response = self.openai_api_call_handler(prompt, 50, 1)
+            print(f"state response: {response}")
+            best_state_text = self.openai_choice2text_handler(
+                response.choices[0]
+            )
+            print(f"Best state text: {best_state_text}")
+            best_state = tuple(best_state_text.split())
+            print(f"best_state: {best_state}")
+
+            return {state: 1 if state == best_state else 0 for state in states}
+
+        else:
+            raise ValueError(
+                "Invalid evaluation strategy. Choose 'value' or 'vote'."
+            )

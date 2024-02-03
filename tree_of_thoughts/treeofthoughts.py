@@ -100,58 +100,105 @@ class TreeofThoughts:
         return None
 
 ######################
-
 class TreeofThoughtsBFS(TreeofThoughts):
-    def solve(self, initial_prompt, num_thoughts, max_steps, max_states=20, value_threshold=0.5, pruning_threshold=0.5):
-        state_queue = Queue()
-        state_queue.put(initial_prompt)
-        visited_states = set()
+    def solve(
+        self,
+        initial_prompt,
+        num_thoughts,
+        max_steps,
+        max_states,
+        value_threshold,
+        pruning_threshold=0.5,
+    ):
+        current_states = [(initial_prompt, set())]
         state_values = {}
         dynamic_pruning_threshold = pruning_threshold
-        last_batch_of_states = []  # To keep track of the last batch of generated states
 
         try:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 for step in range(1, max_steps + 1):
-                    if state_queue.empty():
-                        break
+                    selected_states = []
+                    for state, rejected in current_states:
+                        thoughts = self.model.generate_thoughts(
+                            state, num_thoughts, initial_prompt, list(rejected)
+                        )
+                        futures = [
+                            executor.submit(
+                                self.model.evaluate_states,
+                                {thought: 0},
+                                initial_prompt,
+                            )
+                            for thought in thoughts
+                        ]
+                        concurrent.futures.wait(futures)
+                        evaluated_thoughts = {
+                            thought: fut.result()
+                            for thought, fut in zip(thoughts, futures)
+                            if isinstance(fut.result(), (int, float))
+                        }  # check if result is a number
 
-                    current_state = state_queue.get()
-                    if current_state in visited_states:
-                        continue
+                        if (
+                            evaluated_thoughts
+                        ):  # only adjust if you have evaluated thoughts
+                            dynamic_pruning_threshold = (
+                                self.adjust_pruning_threshold_moving_average(
+                                    evaluated_thoughts, 5
+                                )
+                            )
 
-                    visited_states.add(current_state)
-                    thoughts = self.model.generate_thoughts(current_state, num_thoughts, initial_prompt)
-                    futures = [executor.submit(self.model.evaluate_states, {thought: 0}, initial_prompt) for thought in thoughts]
-                    concurrent.futures.wait(futures)
-                    evaluated_thoughts = {thought: fut.result() for thought, fut in zip(thoughts, futures) if isinstance(fut.result(), (int, float))}
+                        for thought, value in evaluated_thoughts.items():
+                            if value < dynamic_pruning_threshold:
+                                rejected.add(thought)
 
-                    last_batch_of_states.clear()  # Clear previous states before adding new ones
-                    if evaluated_thoughts:
-                        dynamic_pruning_threshold = self.adjust_pruning_threshold_moving_average(evaluated_thoughts, 5)
+                            flattened_state = (
+                                (state, thought)
+                                if isinstance(state, str)
+                                else (*state, thought)
+                            )
+                            selected_states.append((flattened_state, value))
 
-                    for thought, value in evaluated_thoughts.items():
-                        if value >= dynamic_pruning_threshold:
-                            new_state = (current_state, thought) if isinstance(current_state, str) else (*current_state, thought)
-                            state_queue.put(new_state)
-                            state_values[new_state] = value
-                            self.logNewState(new_state, value)
-                            last_batch_of_states.append(new_state)  # Add to the last batch
+                        selected_states.sort(key=lambda x: x[1], reverse=True)
+                        selected_states = selected_states[
+                            :max_states
+                        ]  # Select only the top states
+                        print("Length of rejected vector:")
+                        print(len(rejected))
+                        for state, value in selected_states:
+                            if value >= dynamic_pruning_threshold:
+                                state_values[state] = value
+                                self.logNewState(state, value)
+                                logger.debug(f"State Values: {state_values}")
 
+            # if state_values:
+            #     highest_rated_solution = max(state_values.items(), key=lambda x: x[1])
+            #     print(f"highest rated solution: {highest_rated_solution}")
+            #     highest_rated_state = highest_rated_solution[0]  # Use a different name to avoid confusion
+            #     print(f'highest rated state: {highest_rated_state}')
+            #     try:
+            #         solution = self.model.generate_solution(initial_prompt, highest_rated_state)
+            #     except Exception as e:
+            #         logger.error(f"Error in generating solution: {e}")
+            #         solution = None  # Set a fallback value for solution
+
+            #     return solution if solution is not None else highest_rated_state  # Return highest rated state if solution is None
             if state_values:
-                highest_rated_solution = max(state_values.items(), key=lambda x: x[1])
-                highest_rated_state = highest_rated_solution[0]  
-                solution = self.model.generate_solution(initial_prompt, highest_rated_state)
-                if solution:
-                    print(f"Highest_rated solution: {highest_rated_solution} highest_rated_solution: {highest_rated_solution} Solution: {solution}")
-                    return solution
-                else:
-                    # If unsuccessful in generating a valid solution, select a random one from the last batch
-                    if last_batch_of_states:
-                        random_state = random.choice(last_batch_of_states)
-                        print(f"Randomly selected fallback solution: {random_state}")
-                        return random_state
-            return None
+                highest_rated_solution = max(
+                    state_values.items(), key=lambda x: x[1]
+                )
+                highest_rated_state = highest_rated_solution[0]
+                solution = self.model.generate_solution(
+                    initial_prompt, highest_rated_solution[0][0]  # Extract state string from tuple
+                )
+                print(
+                    "Highest_rated solution:"
+                    f" {highest_rated_solution} highest_rated_solution:"
+                    f" {highest_rated_solution} Solution: {solution}"
+                )
+
+                return solution if solution else highest_rated_state
+
+            else:
+                return None
 
         except Exception as e:
             logger.error(f"Error in tot_bfs: {e}")
