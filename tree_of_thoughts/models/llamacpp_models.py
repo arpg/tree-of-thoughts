@@ -4,10 +4,12 @@ import re
 import requests
 import logging
 from tree_of_thoughts.models.abstract_language_model import AbstractLanguageModel
- 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
- 
+
 PROMPT_ENHANCEMENT_MAP = {
     "llama2-70B": (
         "<s>[INST] <<SYS>>\n"
@@ -31,17 +33,25 @@ PROMPT_ENHANCEMENT_MAP = {
     # Add other models and their pre-prompt and post-prompt text here
 }
 model_name = "wizardlm-70b-v1.0.Q4_K_M"
- 
+
+
 class LlamacppLanguageModel(AbstractLanguageModel):
-    def __init__(self, server_url, model_name = "", strategy="tot", evaluation_strategy="value", enable_ReAct_prompting=False):
+    def __init__(
+        self,
+        server_url,
+        model_name="",
+        strategy="tot",
+        evaluation_strategy="value",
+        enable_ReAct_prompting=False,
+    ):
         self.server_url = server_url
         self.strategy = strategy
         self.evaluation_strategy = evaluation_strategy
-        self.ReAct_prompt = ''
+        self.ReAct_prompt = ""
         # this generally should not be enabled
         if enable_ReAct_prompting:
             self.ReAct_prompt = "Write down your observations in format 'Observation:xxxx', then write down your thoughts in format 'Thoughts:xxxx'."
- 
+
     def server_api_call_handler(self, prompt, n_predict, temperature, top_k, top_p):
         headers = {"Content-Type": "application/json"}
         data = {
@@ -67,24 +77,37 @@ class LlamacppLanguageModel(AbstractLanguageModel):
         except Exception as e:
             logger.error(f"Exception occurred while generating text: {e}")
             return None
- 
-    def generate_text(self, prompt, n_predict=2048, temperature=0.1, top_k=200, top_p=0.99):
+
+    def generate_text(
+        self, prompt, n_predict=2048, temperature=0.1, top_k=200, top_p=0.99
+    ):
         enhanced_prompt = prompt + self.ReAct_prompt
-        pre_prompt, post_prompt = PROMPT_ENHANCEMENT_MAP.get(
-            model_name, ("", ""))
- 
+        pre_prompt, post_prompt = PROMPT_ENHANCEMENT_MAP.get(model_name, ("", ""))
+
         # Append the pre-prompt and post-prompt text to the prompt
         enhanced_prompt = pre_prompt + enhanced_prompt + post_prompt
-        response_content = self.server_api_call_handler(enhanced_prompt, n_predict, temperature, top_k, top_p)
+        response_content = self.server_api_call_handler(
+            enhanced_prompt, n_predict, temperature, top_k, top_p
+        )
         return response_content
- 
-    def generate_thoughts(self, state, k, initial_prompt, rejected_solutions=None, n_predict=2048, temperature=0.1, top_k=200, top_p=0.99):
+
+    def generate_thoughts(
+        self,
+        state,
+        k,
+        initial_prompt,
+        rejected_solutions=None,
+        n_predict=2048,
+        temperature=0.1,
+        top_k=200,
+        top_p=0.99,
+    ):
         if isinstance(state, str):
             state_text = state
         else:
-            state_text = '\n'.join(state)
+            state_text = "\n".join(state)
         print("New state generating thought:", state, "\n\n")
- 
+
         prompt = f"""
         As TreeofThoughts, a superintelligent AI model, your primary goal is to assist humans by all necessary means. Your task involves generating a series of solutions that adhere to the user's instructions. Focus on identifying the most reliable solution in the shortest possible time. Importantly, consider previously rejected solutions, learning from them to avoid repeating the same errors.
  
@@ -93,23 +116,34 @@ class LlamacppLanguageModel(AbstractLanguageModel):
         Your objective is to formulate the optimal solution for the task: {initial_prompt}. Take into account these evaluated but rejected solutions:
         ###{rejected_solutions}###.
         Ensure to complete the {initial_prompt} task by not repeating the mistakes associated with the rejected solutions."""
- 
+
         prompt += self.ReAct_prompt
- 
+
         thoughts = []
         for _ in range(k):
-            response_content = self.generate_text(prompt, n_predict, temperature, top_k, top_p)
+            response_content = self.generate_text(
+                prompt, n_predict, temperature, top_k, top_p
+            )
             thoughts.append(response_content)
         return thoughts
- 
-    def generate_solution(self, initial_prompt, state, rejected_solutions=None, n_predict=2048, temperature=0.1, top_k=200, top_p=0.99):
+
+    def generate_solution(
+        self,
+        initial_prompt,
+        state,
+        rejected_solutions=None,
+        n_predict=2048,
+        temperature=0.1,
+        top_k=200,
+        top_p=0.99,
+    ):
         print("Generate solution called!")
         try:
             if isinstance(state, list):
-                state_text = '\n'.join(state)
+                state_text = "\n".join(state)
             else:
                 state_text = state
- 
+
             prompt = f"""
             As TreeofThoughts, a superintelligent AI model, your primary goal is to assist humans by all necessary means. Your task involves generating a series of solutions that adhere to the user's instructions. Focus on identifying the most reliable solution in the shortest possible time. Importantly, consider previously rejected solutions, learning from them to avoid repeating the same errors.
  
@@ -118,19 +152,21 @@ class LlamacppLanguageModel(AbstractLanguageModel):
             Your objective is to formulate the optimal solution for the task: {initial_prompt}. Take into account these evaluated but rejected solutions:
             ###{rejected_solutions}###.
             Ensure to complete the {initial_prompt} task by not repeating the mistakes associated with the rejected solutions."""
- 
+
             prompt += self.ReAct_prompt
- 
-            response_content = self.generate_text(prompt, n_predict, temperature, top_k, top_p)
+
+            response_content = self.generate_text(
+                prompt, n_predict, temperature, top_k, top_p
+            )
             return response_content
         except Exception as e:
             logger.error(f"Error in generate_solution: {e}")
             return None
- 
+
     def evaluate_states(self, states, initial_prompt):
         if not states:
             return {}
- 
+
         if self.evaluation_strategy == "value":
             state_values = {}
             for state in states:
@@ -151,7 +187,7 @@ class LlamacppLanguageModel(AbstractLanguageModel):
                     If the solution is not directly concretely making fast progress in achieving the goal, give it a lower score.
                     Evaluate all solutions AS A FLOAT BETWEEN 0 and 1:\n, DO NOT RETURN ANYTHING ELSE
                 """
- 
+
                 response = self.generate_text(prompt)
                 # Use regular expressions to find floats in the response
                 match = re.search(r"[-+]?[0-9]*\.?[0-9]+", response)
@@ -167,7 +203,7 @@ class LlamacppLanguageModel(AbstractLanguageModel):
             print("Length of state values")
             print(len(state_values))
             return state_values
- 
+
         elif self.evaluation_strategy == "vote":
             states_text = "\n".join([" ".join(state) for state in states])
             prompt = (
@@ -179,16 +215,12 @@ class LlamacppLanguageModel(AbstractLanguageModel):
             )
             response = self.openai_api_call_handler(prompt, 50, 1)
             print(f"state response: {response}")
-            best_state_text = self.openai_choice2text_handler(
-                response.choices[0]
-            )
+            best_state_text = self.openai_choice2text_handler(response.choices[0])
             print(f"Best state text: {best_state_text}")
             best_state = tuple(best_state_text.split())
             print(f"best_state: {best_state}")
- 
+
             return {state: 1 if state == best_state else 0 for state in states}
- 
+
         else:
-            raise ValueError(
-                "Invalid evaluation strategy. Choose 'value' or 'vote'."
-            )
+            raise ValueError("Invalid evaluation strategy. Choose 'value' or 'vote'.")
