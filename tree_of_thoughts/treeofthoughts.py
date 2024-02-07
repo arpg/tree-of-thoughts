@@ -103,6 +103,10 @@ class TreeofThoughts:
 
 ######################
 class TreeofThoughtsBFS(TreeofThoughts):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.final_layer_states = []  # Initialize the member variable to store final layer states
+
     def solve(
         self,
         initial_prompt,
@@ -135,31 +139,19 @@ class TreeofThoughtsBFS(TreeofThoughts):
                         evaluated_thoughts = {}
                         for thought, fut in zip(thoughts, futures):
                             result = fut.result()
-                            if isinstance(
-                                result, dict
-                            ):  # Ensure the result is a dictionary
+                            if isinstance(result, dict):
                                 for state, value in result.items():
-                                    if isinstance(
-                                        value, (int, float)
-                                    ):  # Check if value is a number
+                                    if isinstance(value, (int, float)):
                                         evaluated_thoughts[state] = value
 
-                        print("Evaluated items length!")
-                        print(len(evaluated_thoughts.items()))
-
-                        if (
-                            evaluated_thoughts
-                        ):  # only adjust if you have evaluated thoughts
-                            dynamic_pruning_threshold = (
-                                self.adjust_pruning_threshold_moving_average(
-                                    evaluated_thoughts, 5
-                                )
+                        dynamic_pruning_threshold = (
+                            self.adjust_pruning_threshold_moving_average(
+                                evaluated_thoughts, 5
                             )
-                        print("Evaluated items length!")
-                        print(len(evaluated_thoughts.items()))
+                        ) if evaluated_thoughts else dynamic_pruning_threshold
+
                         for thought, value in evaluated_thoughts.items():
                             if value < dynamic_pruning_threshold:
-                                print("Pruned!")
                                 rejected.add(thought)
 
                             flattened_state = (
@@ -167,34 +159,18 @@ class TreeofThoughtsBFS(TreeofThoughts):
                                 if isinstance(state, str)
                                 else (*state, thought)
                             )
-                            print("Value found at!")
-                            print(value)
                             selected_states.append((flattened_state, value))
 
-                        selected_states.sort(key=lambda x: x[1], reverse=True)
-                        selected_states = selected_states[
-                            :max_states
-                        ]  # Select only the top states
-                        print("Length of rejected vector:")
-                        print(len(rejected))
-                        for state, value in selected_states:
-                            if value >= dynamic_pruning_threshold:
-                                state_values[state] = value
-                                self.logNewState(state, value)
-                                logger.debug(f"State Values: {state_values}")
+                    selected_states.sort(key=lambda x: x[1], reverse=True)
+                    selected_states = selected_states[:max_states]  # Select only the top states
 
-            # if state_values:
-            #     highest_rated_solution = max(state_values.items(), key=lambda x: x[1])
-            #     print(f"highest rated solution: {highest_rated_solution}")
-            #     highest_rated_state = highest_rated_solution[0]  # Use a different name to avoid confusion
-            #     print(f'highest rated state: {highest_rated_state}')
-            #     try:
-            #         solution = self.model.generate_solution(initial_prompt, highest_rated_state)
-            #     except Exception as e:
-            #         logger.error(f"Error in generating solution: {e}")
-            #         solution = None  # Set a fallback value for solution
+                    for state, value in selected_states:
+                        if value >= dynamic_pruning_threshold:
+                            state_values[state] = value
+                            self.logNewState(state, value)
+                            if step == max_steps:  # Check if it's the final layer
+                                self.final_layer_states.append(state)  # Add to final layer states
 
-            #     return solution if solution is not None else highest_rated_state  # Return highest rated state if solution is None
             if state_values:
                 highest_rated_solution = max(state_values.items(), key=lambda x: x[1])
                 highest_rated_state = highest_rated_solution[0]
@@ -202,20 +178,18 @@ class TreeofThoughtsBFS(TreeofThoughts):
                     initial_prompt,
                     highest_rated_solution[0][0],  # Extract state string from tuple
                 )
-                print(
-                    "Highest_rated solution:"
-                    f" {highest_rated_solution} highest_rated_solution:"
-                    f" {highest_rated_solution} Solution: {solution}"
-                )
 
                 return solution if solution else highest_rated_state
-
             else:
                 return None
 
         except Exception as e:
             logger.error(f"Error in tot_bfs: {e}")
             return None
+
+    def get_final_layer_states(self):
+        return [state[-1] if isinstance(state, tuple) else state for state in self.final_layer_states]
+
 
 
 ######################
