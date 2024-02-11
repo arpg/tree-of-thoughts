@@ -10,3 +10,4 @@ bs4
 playwright
 duckduckgo_search
 faiss-cpu
+google-generativeai
