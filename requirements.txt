@@ -1,13 +1,14 @@
 transformers
 openai
+torch
 guidance
-langchain==0.0.196
+langchain
 asyncio
 nest_asyncio
 
 # faiss
 bs4
 playwright
-duckduckgo_search
-faiss-cpu
 google-generativeai
+numpy
+toml
