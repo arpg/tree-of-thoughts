@@ -34,12 +34,10 @@ num_thoughts = 4
 max_steps = 4
 max_states = 50
 pruning_threshold = 0.3
-value_threshold = 0.3
 
 # Solve the task using the Tree of Thoughts method
 solution = tree_of_thoughts.solve(
     initial_prompt=initial_prompt,
-    value_threshold=value_threshold,
     num_thoughts=num_thoughts,
     max_steps=max_steps, 
     max_states=max_states, 
