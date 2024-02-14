@@ -1,5 +1,6 @@
 import logging
 import re
+import os
 import toml
 from google.generativeai import GenerativeModel, configure
 from tree_of_thoughts.models.abstract_language_model import AbstractLanguageModel
@@ -8,8 +9,14 @@ from tree_of_thoughts.models.abstract_language_model import AbstractLanguageMode
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+# Dynamically determine the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Construct the path to config.toml relative to the script's location
+config_path = os.path.join(script_dir, 'config.toml')
+
 # Load Google API key from the TOML config file
-config = toml.load('config.toml')  # Adjust the path if your config.toml is located elsewhere
+config = toml.load(config_path)  # Now using the dynamically constructed path
 GOOGLE_API_KEY = config['google']['api_key']
 
 # Configure the gemini model with the API key
