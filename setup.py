@@ -1,16 +1,16 @@
 from setuptools import setup, find_packages
 
 setup(
-  name = 'tree-of-thoughts',
-  packages = find_packages(exclude=[]),
-  version = '0.3.6',
+  name='tree-of-thoughts',
+  packages=find_packages(exclude=[]),
+  version='0.3.6',
   license='MIT',
-  description = 'Tree of Thoughts - Pytorch',
-  author = 'Kye Gomez',
-  author_email = 'kye@apac.ai',
-  long_description_content_type = 'text/markdown',
-  url = 'https://github.com/kyegomez/tree-of-thoughts',
-  keywords = [
+  description='Tree of Thoughts - Pytorch',
+  author='Kye Gomez',
+  author_email='kye@apac.ai',
+  long_description_content_type='text/markdown',
+  url='https://github.com/kyegomez/tree-of-thoughts',
+  keywords=[
     'artificial intelligence',
     'deep learning',
     'optimizers',
@@ -21,6 +21,11 @@ setup(
     'openai',
     'transformers',
   ],
+  package_data={
+    # Include any *.toml files found within the tree_of_thoughts package, specifically in the models directory
+    'tree_of_thoughts.models': ['*.toml'],
+  },
+  include_package_data=True,  # This tells setuptools to include any data files specified in MANIFEST.in, or package_data
   classifiers=[
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
@@ -29,3 +34,4 @@ setup(
     'Programming Language :: Python :: 3.6',
   ],
 )
+
