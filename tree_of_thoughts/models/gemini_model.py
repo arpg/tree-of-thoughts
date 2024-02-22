@@ -151,8 +151,6 @@ class GeminiLanguageModel(AbstractLanguageModel):
                 else:
                     value = 0  # Assign a default value if no float is found
                 state_values[state] = value
-            print("Length of state values")
-            print(len(state_values))
             return state_values
 
         elif self.evaluation_strategy == "vote":

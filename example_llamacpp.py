@@ -3,10 +3,10 @@ from tree_of_thoughts.models.llamacpp_models import LlamacppLanguageModel
 from tree_of_thoughts.treeofthoughts import TreeofThoughtsBFS
 
 # Server URL and Model Name for Llamacpp Language Model
-server_url = "http://172.206.254.216:8040/completion"  # Replace with your server URL
+server_url = "http://40.78.49.78:8080/completion"  # Replace with your server URL
 
 # Initialize the LlamacppLanguageModel class with the server URL and model name
-model = LlamacppLanguageModel(model_name="", server_url=server_url)
+model = LlamacppLanguageModel(model_name="wizardlm-70b-v1.0.Q4_K_M", server_url=server_url)
 
 # Initialize the MonteCarloTreeofThoughts class with the Llamacpp model
 tree_of_thoughts = TreeofThoughtsBFS(model)
@@ -30,16 +30,14 @@ Possible next steps:
 """
 
 # Set the parameters for solving the task
-num_thoughts = 4
-max_steps = 4
-max_states = 50
-pruning_threshold = 0.3
-value_threshold = 0.3
+num_thoughts = 1
+max_steps = 3
+max_states = 4
+pruning_threshold = 0.5
 
 # Solve the task using the Tree of Thoughts method
 solution = tree_of_thoughts.solve(
     initial_prompt=initial_prompt,
-    value_threshold=value_threshold,
     num_thoughts=num_thoughts,
     max_steps=max_steps, 
     max_states=max_states, 

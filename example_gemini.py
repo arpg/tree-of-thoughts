@@ -30,10 +30,10 @@ Possible next steps:
 """
 
 # Set the parameters for solving the task
-num_thoughts = 4
-max_steps = 4
-max_states = 50
-pruning_threshold = 0.3
+num_thoughts = 1
+max_steps = 3
+max_states = 4
+pruning_threshold = 0.5
 
 # Solve the task using the Tree of Thoughts method
 solution = tree_of_thoughts.solve(

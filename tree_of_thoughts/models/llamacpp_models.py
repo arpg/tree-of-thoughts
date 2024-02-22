@@ -32,14 +32,12 @@ PROMPT_ENHANCEMENT_MAP = {
     ),
     # Add other models and their pre-prompt and post-prompt text here
 }
-model_name = "wizardlm-70b-v1.0.Q4_K_M"
-
 
 class LlamacppLanguageModel(AbstractLanguageModel):
     def __init__(
         self,
         server_url,
-        model_name="",
+        model_name= "",
         strategy="tot",
         evaluation_strategy="value",
         enable_ReAct_prompting=False,
@@ -47,6 +45,7 @@ class LlamacppLanguageModel(AbstractLanguageModel):
         self.server_url = server_url
         self.strategy = strategy
         self.evaluation_strategy = evaluation_strategy
+        self.model_name = model_name
         self.ReAct_prompt = ""
         # this generally should not be enabled
         if enable_ReAct_prompting:
@@ -82,7 +81,7 @@ class LlamacppLanguageModel(AbstractLanguageModel):
         self, prompt, n_predict=2048, temperature=0.1, top_k=200, top_p=0.99
     ):
         enhanced_prompt = prompt + self.ReAct_prompt
-        pre_prompt, post_prompt = PROMPT_ENHANCEMENT_MAP.get(model_name, ("", ""))
+        pre_prompt, post_prompt = PROMPT_ENHANCEMENT_MAP.get(self.model_name, ("", ""))
 
         # Append the pre-prompt and post-prompt text to the prompt
         enhanced_prompt = pre_prompt + enhanced_prompt + post_prompt
